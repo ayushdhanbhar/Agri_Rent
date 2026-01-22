@@ -1,0 +1,73 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  
+  /* Primary brand (soil / trust) */
+  --agri-primary: #3E2723;   /* Soil Brown */
+
+  /* Secondary (crop / success) */
+  --agri-secondary: #2E7D32; /* Crop Green */
+
+  /* Background / surfaces */
+  --agri-surface: #F5F1E3;   /* Wheat Beige */
+
+  /* Call-to-action */
+  --agri-accent: #F57C00;    /* Harvest Orange */
+
+  /* Text colors */
+  --agri-text-dark: #2E2E2E;
+  --agri-text-light: #FFFFFF;
+
+  /* Legacy color names for compatibility */
+  --agri-green: #4CAF50;     /* Crop Green */
+  --agri-light: #F5F1E3;     /* Wheat Beige */
+  --agri-dark: #6D4C41;      /* Soil Brown */
+}
+
+/* Custom animations */
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-20px);
+  }
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+@keyframes pulse-glow {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(255, 152, 0, 0.7);
+  }
+  50% {
+    box-shadow: 0 0 0 10px rgba(255, 152, 0, 0);
+  }
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 2s infinite;
+}
+
+@keyframes blink {
+  0%, 50%, 100% { opacity: 1; }
+  25%, 75% { opacity: 0; }
+}
+
+.animate-blink {
+  animation: blink 1s infinite;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fadeIn {
+  animation: fadeIn 1.2s ease-out;
+}
