@@ -155,7 +155,36 @@ Here are some screenshots showcasing the AgriRent platform:
 
 ---
 
-## **📩 Contact Us**
+## **�️ Mapbox Integration Setup**
+
+The farmer dashboard includes a location-based map feature that shows nearby equipment owners within a 50km radius. To enable this feature:
+
+### **1. Get a Mapbox Access Token**
+1. Visit [https://account.mapbox.com/](https://account.mapbox.com/)
+2. Sign up for a free account
+3. Create a new access token
+4. Copy the token
+
+### **2. Configure Environment Variables**
+1. Copy `.env.example` to `.env` in the frontend directory:
+   ```bash
+   cp frontend/.env.example frontend/.env
+   ```
+2. Add your Mapbox token to `frontend/.env`:
+   ```
+   VITE_MAPBOX_ACCESS_TOKEN=your_actual_mapbox_token_here
+   ```
+
+### **3. Features**
+- **Farmer Location**: Blue marker showing the farmer's current location
+- **Nearby Owners**: Red markers showing equipment owners within 50km
+- **Distance Calculation**: Haversine formula for accurate distance measurement
+- **Geocoding**: Converts addresses (village, taluka, district, state) to coordinates
+- **Interactive Popups**: Click markers to see owner details and available equipment
+
+---
+
+## **�📩 Contact Us**
 
 If you have any questions, feedback, or issues, feel free to reach out.
 

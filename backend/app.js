@@ -12,7 +12,7 @@ const http = require("http");
 const Message = require("./models/message");
 const aiRouter = require("./routes/aiRoutes");
 const utilizationRouter = require('./routes/utilizationRoute');
-
+const mapRoutes = require("./routes/mapRoutes");
 const app = express();
 const server = http.createServer(app);
 
@@ -62,7 +62,7 @@ app.use("/", reviewRouter)
 app.use("/", messageRouter)
 app.use("/", adminRouter)
 app.use("/", utilizationRouter)
-
+app.use("/", mapRoutes);
 // Socket.IO Logic
 io.on("connection", (socket) => {
     console.log(`User Connected: ${socket.id}`);
@@ -117,7 +117,7 @@ app.use("/", chatbotRouter);
 app.use("/", mlRouter);
 
 app.use("/", aiRouter);
-
+app.use("/api/map", mapRoutes);
 // Global Error Handler
 app.use((err, req, res, next) => {
     console.error(err.stack);
