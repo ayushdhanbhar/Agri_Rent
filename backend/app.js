@@ -10,6 +10,8 @@ const adminRouter = require("./routes/adminRoute")
 const { Server } = require("socket.io");
 const http = require("http");
 const Message = require("./models/message");
+const aiRouter = require("./routes/aiRoutes");
+const utilizationRouter = require('./routes/utilizationRoute');
 
 const app = express();
 const server = http.createServer(app);
@@ -59,6 +61,7 @@ app.use("/", bookingRouter)
 app.use("/", reviewRouter)
 app.use("/", messageRouter)
 app.use("/", adminRouter)
+app.use("/", utilizationRouter)
 
 // Socket.IO Logic
 io.on("connection", (socket) => {
@@ -113,7 +116,6 @@ app.use("/", disputeRouter)
 app.use("/", chatbotRouter);
 app.use("/", mlRouter);
 
-const aiRouter = require("./routes/aiRoutes");
 app.use("/", aiRouter);
 
 // Global Error Handler

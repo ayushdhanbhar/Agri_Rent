@@ -16,6 +16,22 @@ import {
   LineElement,
 } from 'chart.js';
 import { Bar, Line } from 'react-chartjs-2';
+
+// Category Map for Equipment
+const CATEGORY_MAP = {
+  "Land Preparation Equipment": ["Tractor", "Power Tiller", "Plough", "Harrow", "Cultivator", "Rotavator", "Subsoiler", "Land Leveler", "Laser Land Leveler"],
+  "Sowing & Planting Equipment": ["Seed Drill", "Seed Cum Fertilizer Drill", "Planter", "Rice Transplanter", "Potato Planter", "Maize Planter", "Sugarcane Planter", "Nursery Seeder", "Dibber"],
+  "Irrigation Equipment": ["Water Pump", "Drip Irrigation System", "Sprinkler System", "Hose Pipes", "Rain Gun", "Micro Irrigation System", "Submersible Pump", "Centrifugal Pump"],
+  "Crop Protection Equipment": ["Knapsack Sprayer", "Boom Sprayer", "Fogger", "Duster", "Weed Cutter", "Brush Cutter", "Drone Sprayer"],
+  "Fertilizer & Manure Application": ["Fertilizer Spreader", "Manure Spreader", "Compost Spreader", "Broadcast Sprayer"],
+  "Harvesting Equipment": ["Harvester", "Combine Harvester", "Reaper", "Reaper Binder", "Paddy Harvester", "Sugarcane Harvester", "Forage Harvester"],
+  "Post-Harvest Equipment": ["Thresher", "Winnower", "Grain Cleaner", "Dehusker", "Paddy Separator", "Maize Separator", "Grain Dryer", "Baler"],
+  "Storage & Handling Equipment": ["Grain Storage Bins", "Cold Storage Units", "Silage Bags", "Crates", "Weighing Scale", "Conveyor Belt"],
+  "Transport & Material Handling": ["Tractor Trolley", "Trailer", "Farm Cart", "Mini Truck", "Forklift", "Hand Trolley"],
+  "Orchard & Plantation Equipment": ["Pruning Machine", "Orchard Sprayer", "Hedge Trimmer", "Fruit Picker", "Mulcher", "Chipper"],
+  "Renewable & Smart Farming Equipment": ["Solar Pump", "Soil Moisture Sensor", "Weather Station", "GPS Tracker", "Farm Drone", "Yield Monitor"],
+  "Small Tools & Accessories": ["Chainsaw", "Power Weeder", "Auger", "Earth Auger", "Generator", "Pressure Washer"],
+};
 import PricingSuggestion from './PricingSuggestion';
 
 ChartJS.register(
@@ -400,6 +416,10 @@ export default function OwnerDashboard() {
   const [disputes, setDisputes] = useState([]);
   const [newDispute, setNewDispute] = useState({ issue_type: '', description: '' });
   const [smartPricingResult, setSmartPricingResult] = useState(null);
+  
+  // Equipment Utilization State
+  const [allEquipment, setAllEquipment] = useState([]);
+  const [selectedCategory, setSelectedCategory] = useState("");
 
   const fetchDisputes = async () => {
     try {
@@ -443,6 +463,29 @@ export default function OwnerDashboard() {
       fetchDisputes();
     }
   }, [activeTab, userId]); // Add userId to dependency array
+
+  // Fetch equipment for utilization analysis
+  useEffect(() => {
+    if (activeTab === 'analytics' && userId) {
+      const fetchEquipmentUtilization = async () => {
+        try {
+          const res = await fetch(`${API_BASE}/v1/owner/${userId}`);
+          const data = await res.json();
+          if (data.data && Array.isArray(data.data)) {
+            setAllEquipment(data.data);
+            // Set first category as default if equipment exists
+            if (data.data.length > 0 && !selectedCategory) {
+              const firstCategory = data.data[0].category;
+              setSelectedCategory(firstCategory);
+            }
+          }
+        } catch (error) {
+          console.error("Error fetching equipment utilization:", error);
+        }
+      };
+      fetchEquipmentUtilization();
+    }
+  }, [activeTab, userId]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-agri-light via-white to-agri-light">
@@ -803,8 +846,121 @@ export default function OwnerDashboard() {
                 </div>
               </div>
             </div>
+
+            {/* Equipment Utilization */}
+            {allEquipment.length > 0 && (
+              <div className="bg-white rounded-xl shadow-lg p-8">
+                <h3 className="text-xl font-bold text-agri-dark mb-6">Equipment Utilization</h3>
+                
+                {/* Category Dropdown */}
+                <div className="mb-6">
+                  <label className="block text-sm font-semibold text-agri-dark mb-2">Select Equipment Category</label>
+                  <select 
+                    value={selectedCategory}
+                    onChange={(e) => setSelectedCategory(e.target.value)}
+                    className="w-full border-2 border-agri-green p-3 rounded-lg font-semibold text-gray-700 focus:outline-none focus:ring-2 focus:ring-agri-green"
+                  >
+                    <option value="">-- Select a Category --</option>
+                    {Object.keys(CATEGORY_MAP).map((cat) => (
+                      <option key={cat} value={cat}>{cat}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Bar Chart */}
+                {selectedCategory && (
+                  <div className="bg-gradient-to-br from-blue-50 to-green-50 rounded-lg p-6 border border-agri-green">
+                    {(() => {
+                      // Filter equipment by selected category
+                      const categoryEquipment = allEquipment.filter(eq => eq.category === selectedCategory);
+                      
+                      // Count equipment by subCategory
+                      const equipmentCount = {};
+                      categoryEquipment.forEach(eq => {
+                        equipmentCount[eq.subCategory] = (equipmentCount[eq.subCategory] || 0) + 1;
+                      });
+
+                      const chartData = {
+                        labels: Object.keys(equipmentCount),
+                        datasets: [
+                          {
+                            label: 'Equipment Count',
+                            data: Object.values(equipmentCount),
+                            backgroundColor: 'rgba(34, 197, 94, 0.6)',
+                            borderColor: 'rgba(34, 197, 94, 1)',
+                            borderWidth: 2,
+                            borderRadius: 8,
+                            hoverBackgroundColor: 'rgba(34, 197, 94, 0.8)',
+                          }
+                        ]
+                      };
+
+                      const chartOptions = {
+                        responsive: true,
+                        plugins: {
+                          legend: {
+                            display: true,
+                            labels: {
+                              color: 'rgba(0, 0, 0, 0.7)',
+                              font: { size: 12, weight: 'bold' }
+                            }
+                          },
+                          tooltip: {
+                            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                            padding: 12,
+                            titleFont: { size: 13, weight: 'bold' },
+                            bodyFont: { size: 12 }
+                          }
+                        },
+                        scales: {
+                          y: {
+                            beginAtZero: true,
+                            ticks: { stepSize: 1, color: 'rgba(0, 0, 0, 0.6)' },
+                            grid: { color: 'rgba(0, 0, 0, 0.1)' }
+                          },
+                          x: {
+                            ticks: { color: 'rgba(0, 0, 0, 0.6)' },
+                            grid: { display: false }
+                          }
+                        }
+                      };
+
+                      return (
+                        <div>
+                          {categoryEquipment.length > 0 ? (
+                            <>
+                              <Bar data={chartData} options={chartOptions} />
+                              <div className="mt-6 p-4 bg-white rounded-lg border border-gray-200">
+                                <h4 className="font-bold text-agri-dark mb-3">Summary</h4>
+                                <div className="grid grid-cols-2 gap-4">
+                                  <div>
+                                    <p className="text-gray-600 text-sm">Total Equipment</p>
+                                    <p className="text-2xl font-bold text-agri-green">{categoryEquipment.length}</p>
+                                  </div>
+                                  <div>
+                                    <p className="text-gray-600 text-sm">Equipment Types</p>
+                                    <p className="text-2xl font-bold text-agri-green">{Object.keys(equipmentCount).length}</p>
+                                  </div>
+                                </div>
+                              </div>
+                            </>
+                          ) : (
+                            <p className="text-center text-gray-500 py-8">No equipment found in this category</p>
+                          )}
+                        </div>
+                      );
+                    })()}
+                  </div>
+                )}
+
+                {!selectedCategory && (
+                  <p className="text-center text-gray-500 py-8">Select a category to view equipment utilization chart</p>
+                )}
+              </div>
+            )}
           </div>
         )}
+
 
         {/* --- SETTINGS --- */}
         {activeTab === 'settings' && (
