@@ -12,8 +12,18 @@ exports.getNearbyOwners = async (req, res) => {
       return res.status(404).json({ message: "Farmer not found" });
     }
 
-    // 2️⃣ Geocode farmer location
-    const farmerCoords = await geocodeLocation(farmer);
+    // 2️⃣ Validate farmer location
+    if (!farmer.village || farmer.village.trim() === "") {
+      return res
+        .status(400)
+        .json({ message: "Farmer district information is missing" });
+    }
+
+    const farmerLocationString = `${farmer.village || ""}, ${farmer.taluka || ""}, ${farmer.district}`
+      .replace(/,\s*,/g, ",")
+      .trim();
+
+    const farmerCoords = await geocodeLocation(farmerLocationString);
 
     // 3️⃣ Fetch all owners
     const owners = await User.find({ role: "owner" });
@@ -21,8 +31,14 @@ exports.getNearbyOwners = async (req, res) => {
     const nearbyOwners = [];
 
     for (const owner of owners) {
-      // 4️⃣ Geocode owner location
-      const ownerCoords = await geocodeLocation(owner);
+      // 4️⃣ Skip owners without location
+      if (!owner.village || owner.village.trim() === "") continue;
+
+      const ownerLocationString = `${owner.village || ""}, ${owner.taluka || ""}, ${owner.district}`
+        .replace(/,\s*,/g, ",")
+        .trim();
+
+      const ownerCoords = await geocodeLocation(ownerLocationString);
 
       // 5️⃣ Calculate distance
       const distance = getDistanceInKm(
@@ -37,14 +53,21 @@ exports.getNearbyOwners = async (req, res) => {
           ownerId: owner._id,
           name: owner.name,
           village: owner.village,
-          distance: distance.toFixed(2)
+          distance: Number(distance.toFixed(2)), // ✅ FIX: number, not string
+          lat: ownerCoords.lat,
+          long: ownerCoords.lng
         });
       }
     }
 
-    // 6️⃣ Response
+    // 6️⃣ Sort by nearest first ✅ FIX
+    nearbyOwners.sort((a, b) => a.distance - b.distance);
+
+    // 7️⃣ Response
     res.json({
       farmer: farmer.name,
+      farmetLat: farmerCoords.lat,
+      farmerLong: farmerCoords.lng,
       nearbyOwners
     });
 

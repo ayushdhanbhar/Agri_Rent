@@ -59,7 +59,7 @@ app.use("/", bookingRouter)
 app.use("/", reviewRouter)
 app.use("/", messageRouter)
 app.use("/", adminRouter)
-app.use("/getNearbyOwners", mapRoutes);
+app.use("/", mapRoutes);
 // Socket.IO Logic
 io.on("connection", (socket) => {
     console.log(`User Connected: ${socket.id}`);

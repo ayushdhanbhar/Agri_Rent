@@ -20,7 +20,8 @@ import { Badge } from "./ui/Badge"; // Assuming you exported Badge
 import { getCategoryIcon } from "./CategoryIcons";
 import { io } from "socket.io-client";
 import { motion, AnimatePresence } from "framer-motion";
-import LocationBasedMap from "./LocationBasedMap";
+import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
+import L from "leaflet";
 
 const API_BASE = "http://localhost:8000/api";
 const SOCKET_URL = "http://localhost:8000";
@@ -430,22 +431,7 @@ export default function FarmerDashboard() {
       {/* --- MAP --- */}
       {activeTab === "map" && (
         <div className="space-y-4">
-          <Card>
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-              <div>
-                <h2 className="text-xl font-bold text-agri-dark">Equipment Map</h2>
-                <p className="text-sm text-gray-600">
-                  See nearby approved equipment with shared locations.
-                </p>
-              </div>
-              <Button variant="secondary" onClick={fetchRentableEquipment}>
-                Refresh Listings
-              </Button>
-            </div>
-          </Card>
-
-          {/* Location-based Equipment Map */}
-          <LocationBasedMap farmerId={userId} />
+          <NearbyOwnersMap farmerId={userId} />
         </div>
       )}
 
@@ -689,5 +675,252 @@ export default function FarmerDashboard() {
         </div>
       )}
     </DashboardLayout>
+  );
+}
+
+/* ==================== NEARBY OWNERS MAP COMPONENT ==================== */
+function NearbyOwnersMap({ farmerId }) {
+  const [nearbyOwners, setNearbyOwners] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [farmerLocation, setFarmerLocation] = useState(null);
+  const [farmerData, setFarmerData] = useState(null);
+  const mapRef = useRef(null);
+
+  useEffect(() => {
+    const fetchNearbyOwners = async () => {
+      try {
+        setLoading(true);
+        setError("");
+        const userId = localStorage.getItem("user_id");
+        
+        if (!userId) {
+          setError("User not found. Please log in again.");
+          setLoading(false);
+          return;
+        }
+
+        const res = await fetch(`${API_BASE}/v1/map/nearby-owners/${userId}`);
+        const data = await res.json();
+
+        console.log("Nearby owners response:", data); // Debug log
+
+        if (res.ok && data.nearbyOwners) {
+          // Filter owners within 20km
+          const filteredOwners = data.nearbyOwners.filter(owner => owner.distance <= 20);
+          setNearbyOwners(filteredOwners);
+          
+          // Set farmer location from response - check both field name variations
+          const farmerLat = data.farmerLat || data.farmer_lat;
+          const farmerLong = data.farmerLong || data.farmer_long;
+          
+          console.log("Farmer Lat:", farmerLat, "Farmer Long:", farmerLong); // Debug log
+          
+          if (farmerLat && farmerLong) {
+            setFarmerLocation([farmerLat, farmerLong]);
+            setFarmerData({
+              name: data.farmer,
+              lat: farmerLat,
+              long: farmerLong
+            });
+          } else {
+            // Fallback: use first owner's location as reference
+            if (filteredOwners.length > 0) {
+              const avgLat = filteredOwners.reduce((sum, owner) => sum + owner.lat, 0) / filteredOwners.length;
+              const avgLng = filteredOwners.reduce((sum, owner) => sum + owner.long, 0) / filteredOwners.length;
+              setFarmerLocation([avgLat, avgLng]);
+              setFarmerData({
+                name: data.farmer || "Your Location",
+                lat: avgLat,
+                long: avgLng
+              });
+            } else {
+              setError("No location data available");
+            }
+          }
+        } else {
+          setError(data.message || "Failed to fetch nearby owners");
+        }
+      } catch (err) {
+        console.error("Error fetching nearby owners:", err);
+        setError("Error fetching nearby owners: " + err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchNearbyOwners();
+  }, []);
+
+  if (loading) {
+    return (
+      <Card>
+        <div className="flex items-center justify-center py-8">
+          <div className="text-center">
+            <RefreshCw size={40} className="animate-spin text-agri-green mx-auto mb-3" />
+            <p className="text-gray-600">Loading nearby owners...</p>
+          </div>
+        </div>
+      </Card>
+    );
+  }
+
+  if (error) {
+    return (
+      <Card>
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+          <p className="text-red-700 text-sm">{error}</p>
+        </div>
+      </Card>
+    );
+  }
+
+  if (nearbyOwners.length === 0) {
+    return (
+      <Card>
+        <div className="text-center py-8">
+          <MapPin size={48} className="text-gray-300 mx-auto mb-3" />
+          <p className="text-gray-600">No equipment owners found within 20km</p>
+        </div>
+      </Card>
+    );
+  }
+
+  // Create custom icons with larger sizes
+  const farmerIcon = L.divIcon({
+    html: `<div style="background-color: #3d6e2e; width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 4px solid white; box-shadow: 0 2px 8px rgba(0,0,0,0.3); font-weight: bold; color: white; font-size: 24px;">👨‍🌾</div>`,
+    iconSize: [50, 50],
+    iconAnchor: [25, 50],
+    popupAnchor: [0, -50],
+    className: 'farmer-marker'
+  });
+
+  const ownerIcon = L.divIcon({
+    html: `<div style="background-color: #ff6b6b; width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 4px solid white; box-shadow: 0 2px 8px rgba(0,0,0,0.3); font-weight: bold; color: white; font-size: 24px;">📍</div>`,
+    iconSize: [50, 50],
+    iconAnchor: [25, 50],
+    popupAnchor: [0, -50],
+    className: 'owner-marker'
+  });
+
+  return (
+    <div className="space-y-4">
+      <Card>
+        <div>
+          <h2 className="text-xl font-bold text-agri-dark">Nearby Equipment Owners Map</h2>
+          <p className="text-sm text-gray-600">Your location and equipment owners within 20km</p>
+        </div>
+      </Card>
+
+      <div className="rounded-lg overflow-hidden border border-gray-200 h-[600px] bg-gray-50">
+        {farmerLocation ? (
+          <MapContainer 
+            key={`${farmerLocation[0]}-${farmerLocation[1]}`}
+            center={farmerLocation} 
+            zoom={12} 
+            style={{ height: "600px", width: "100%" }}
+            ref={mapRef}
+            className="w-full h-full"
+          >
+            <TileLayer
+              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            />
+            
+            {/* Farmer Marker */}
+            {farmerData && (
+              <Marker
+                position={[farmerData.lat, farmerData.long]}
+                icon={farmerIcon}
+              >
+                <Popup>
+                  <div className="text-sm font-semibold">
+                    <h3 className="font-bold text-agri-dark text-base">Your Location</h3>
+                    <p className="text-gray-600">Farmer: {farmerData.name}</p>
+                    <p className="text-xs text-gray-500 mt-1">Lat: {farmerData.lat.toFixed(4)}, Lng: {farmerData.long.toFixed(4)}</p>
+                  </div>
+                </Popup>
+              </Marker>
+            )}
+            
+            {/* Owner Markers */}
+            {nearbyOwners.map((owner) => (
+              <Marker
+                key={owner.ownerId}
+                position={[owner.lat, owner.long]}
+                icon={ownerIcon}
+              >
+                <Popup>
+                  <div className="text-sm">
+                    <h3 className="font-bold text-gray-900 text-base">{owner.name}</h3>
+                    <p className="text-gray-600">Village: {owner.village}</p>
+                    <p className="text-red-600 font-semibold">{owner.distance} km away</p>
+                    <p className="text-xs text-gray-500 mt-1">Lat: {owner.lat.toFixed(4)}, Lng: {owner.long.toFixed(4)}</p>
+                  </div>
+                </Popup>
+              </Marker>
+            ))}
+          </MapContainer>
+        ) : (
+          <div className="w-full h-full flex flex-col items-center justify-center bg-gray-100 gap-3">
+            <p className="text-gray-500 font-semibold">Map not available</p>
+            <p className="text-gray-400 text-sm">Please check browser console for errors</p>
+            <p className="text-gray-400 text-xs">Make sure leaflet is installed: npm install leaflet react-leaflet</p>
+          </div>
+        )}
+      </div>
+
+      {/* Legend */}
+      <Card>
+        <h3 className="font-bold text-lg text-agri-dark mb-4">Map Legend</h3>
+        <div className="grid grid-cols-2 gap-4">
+          <div className="flex items-center gap-3">
+            <div style={{ background: '#3d6e2e', width: '40px', height: '40px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '3px solid white', fontSize: '20px' }}>👨‍🌾</div>
+            <div>
+              <p className="font-semibold text-gray-900">Your Location</p>
+              <p className="text-xs text-gray-600">Your current position</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            <div style={{ background: '#ff6b6b', width: '40px', height: '40px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '3px solid white', fontSize: '20px' }}>📍</div>
+            <div>
+              <p className="font-semibold text-gray-900">Equipment Owner</p>
+              <p className="text-xs text-gray-600">Owner location</p>
+            </div>
+          </div>
+        </div>
+      </Card>
+
+      {/* Owner List Below Map */}
+      <Card>
+        <h3 className="font-bold text-lg text-agri-dark mb-4">Nearby Owners List</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {nearbyOwners.map((owner) => (
+            <motion.div
+              key={owner.ownerId}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="border border-red-300 rounded-lg p-4 hover:shadow-md transition bg-red-50"
+            >
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
+                  <h3 className="font-bold text-gray-900 text-lg">{owner.name}</h3>
+                  <div className="flex items-center gap-2 mt-2 text-gray-600">
+                    <Home size={16} />
+                    <span className="text-sm">{owner.village}</span>
+                  </div>
+                </div>
+              </div>
+              <div className="mt-4 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <MapPin size={18} className="text-red-600" />
+                  <span className="font-semibold text-red-600">{owner.distance} km away</span>
+                </div>
+              </div>
+            </motion.div>
+          ))}
+        </div>
+      </Card>
+    </div>
   );
 }
