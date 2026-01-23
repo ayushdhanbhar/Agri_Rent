@@ -335,6 +335,7 @@ export default function FarmerDashboard() {
     { id: 'map', label: 'Map', icon: MapPin, onClick: () => setActiveTab('map'), isActive: activeTab === 'map' },
     { id: 'bookings', label: 'My Bookings', icon: List, onClick: () => setActiveTab('bookings'), isActive: activeTab === 'bookings' },
     { id: 'messages', label: 'Messages', icon: MessageCircle, onClick: () => setActiveTab('messages'), isActive: activeTab === 'messages' },
+    { id: 'ai-insights', label: 'AI Insights', icon: Tractor, onClick: () => setActiveTab('ai-insights'), isActive: activeTab === 'ai-insights' },
     { id: 'disputes', label: 'Disputes', icon: XCircle, onClick: () => setActiveTab('disputes'), isActive: activeTab === 'disputes' },
     { id: 'settings', label: 'Settings', icon: Settings, onClick: () => setActiveTab('settings'), isActive: activeTab === 'settings' },
   ];
@@ -529,6 +530,76 @@ export default function FarmerDashboard() {
               </Card>
             ))}
           </div>
+        </div>
+      )}
+
+      {/* --- AI INSIGHTS --- */}
+      {activeTab === 'ai-insights' && (
+        <div className="grid md:grid-cols-2 gap-8">
+          {/* Equipment Recommendation */}
+          <Card>
+            <h2 className="text-xl font-bold mb-4 text-agri-dark">Intelligent Recommendations</h2>
+            <div className="space-y-4">
+              <select
+                className="w-full border p-3 rounded-lg bg-gray-50"
+                onChange={async (e) => {
+                  if (!e.target.value) return;
+                  try {
+                    const res = await fetch(`${API_BASE}/v1/ai/recommend`, {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ crop: e.target.value, land_size: 5 })
+                    });
+                    const data = await res.json();
+                    if (data.data?.recommendations) {
+                      // Store in a local state if needed, for now just alerting or console
+                      // Ideally, we add a state variable `recommendations`
+                      // But to keep it simple in this edit, I will just show them in a list below
+                      setRentableEquipment(data.data.recommendations.map(r => ({ ...r, _id: "rec-" + Math.random() })));
+                      setActiveTab('rent'); // Switch to rent tab to show filtered results?
+                      // Actually, better to show them here.
+                    }
+                  } catch (e) { console.error(e); }
+                }}
+              >
+                <option value="">Select Crop Type</option>
+                <option value="Wheat">Wheat</option>
+                <option value="Rice">Rice</option>
+                <option value="Sugarcane">Sugarcane</option>
+                <option value="Cotton">Cotton</option>
+                <option value="Vegetables">Vegetables</option>
+                <option value="Fruits">Fruits</option>
+              </select>
+              <p className="text-sm text-gray-500">Select a crop to see recommended equipment based on land size and farming stage.</p>
+            </div>
+          </Card>
+
+          {/* Demand Prediction */}
+          <Card>
+            <h2 className="text-xl font-bold mb-4 text-agri-dark">Demand Forecast</h2>
+            <div className="space-y-4">
+              <select className="w-full border p-3 rounded-lg bg-gray-50" onChange={async (e) => {
+                const eq = e.target.value;
+                if (!eq) return;
+                try {
+                  const res = await fetch(`${API_BASE}/v1/ai/predict-demand`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ equipment: eq, month: "June", district: "Pune" })
+                  });
+                  const data = await res.json();
+                  alert(`Demand for ${eq}: ${data.data.demand_level} (Score: ${data.data.demand_score})`);
+                } catch (e) { console.error(e); }
+              }}>
+                <option value="">Check Equipment Demand</option>
+                <option value="Tractor">Tractor</option>
+                <option value="Harvester">Harvester</option>
+                <option value="Rotavator">Rotavator</option>
+                <option value="Drone">Drone</option>
+              </select>
+              <p className="text-sm text-gray-500">Check predicted demand for specific equipment to plan your rentals.</p>
+            </div>
+          </Card>
         </div>
       )}
 

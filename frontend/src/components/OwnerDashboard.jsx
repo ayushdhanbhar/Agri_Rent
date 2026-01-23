@@ -57,11 +57,12 @@ export default function OwnerDashboard() {
   // Forms
   const [showAddModal, setShowAddModal] = useState(false);
   const [equipmentForm, setEquipmentForm] = useState({
-    equipment_name: "",
     category: "",
+    subCategory: "",
+    district: "",
     description: "",
-    price_per_hour: "",
-    price_per_day: "",
+    ratePerHour: "",
+    ratePerDay: "",
   });
 
   const [profileForm, setProfileForm] = useState({
@@ -198,24 +199,53 @@ export default function OwnerDashboard() {
     }
   };
 
-  const handleAddEquipment = async () => {
+  const handleAddEquipment = async (e) => {
+    if (e?.preventDefault) e.preventDefault();
+    if (e?.stopPropagation) e.stopPropagation();
+
+    // 🚨 HARD BLOCK: prevent HTMLButtonElement from leaking
+    if (e && e.target instanceof HTMLElement) {
+      e = null;
+    }
+
     try {
+      const payload = {
+        owner_id: userId,
+        category: equipmentForm.category,
+        subCategory: equipmentForm.subCategory,
+        district: equipmentForm.district,
+        description: equipmentForm.description,
+        ratePerHour: Number(equipmentForm.ratePerHour),
+        ratePerDay: Number(equipmentForm.ratePerDay),
+      };
+      console.log(payload);
       const res = await fetch(`${API_BASE}/v1/equipments/add`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...equipmentForm, owner_id: userId }),
+        body: JSON.stringify(payload),
       });
-      if (res.ok) {
-        setShowAddModal(false);
-        setEquipmentForm({ equipment_name: "", category: "", description: "", price_per_hour: "", price_per_day: "" });
-        fetchInventory(userId);
-      } else {
+
+      if (!res.ok) {
         alert("Failed to add equipment");
+        return;
       }
+
+      setShowAddModal(false);
+      setEquipmentForm({
+        category: "",
+        subCategory: "",
+        district: "",
+        description: "",
+        ratePerHour: "",
+        ratePerDay: "",
+      });
+
+      fetchInventory(userId);
     } catch (err) {
-      console.error("Error adding equipment:", err);
+      console.error("Add equipment failed:", err?.message);
     }
   };
+
 
   const handleUpdateProfile = async () => {
     try {
@@ -384,6 +414,7 @@ export default function OwnerDashboard() {
             { id: 'bookings', label: 'Bookings', icon: MapPin },
             { id: 'messages', label: 'Messages', icon: MessageCircle },
             { id: 'reviews', label: 'Reviews', icon: Star },
+            { id: 'analytics', label: 'Analytics', icon: BarChart3 },
             { id: 'disputes', label: 'Disputes', icon: AlertCircle },
             { id: 'settings', label: 'Settings', icon: Settings },
           ].map(tab => {
@@ -487,6 +518,27 @@ export default function OwnerDashboard() {
                             <button onClick={() => handleBookingStatus(booking._id, 'confirmed')} className="bg-green-500 text-white p-2 rounded-full hover:bg-green-600" title="Accept"><Check size={16} /></button>
                             <button onClick={() => handleBookingStatus(booking._id, 'cancelled')} className="bg-red-500 text-white p-2 rounded-full hover:bg-red-600" title="Reject"><X size={16} /></button>
                           </div>
+                        )}
+                        {(booking.booking_status === 'completed' || booking.booking_status === 'confirmed') && (
+                          <button onClick={() => {
+                            const rating = prompt("Rate this farmer (1-5):");
+                            const comment = prompt("Comment:");
+                            if (rating && comment) {
+                              fetch(`${API_BASE}/v1/reviews/add`, {
+                                method: "POST", headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify({
+                                  booking_id: booking._id,
+                                  reviewer_id: userId,
+                                  reviewee_id: booking.farmer_id?._id,
+                                  equipment_id: booking.equipment_id?._id,
+                                  rating: parseInt(rating),
+                                  comment
+                                })
+                              }).then(res => {
+                                if (res.ok) alert("Review submitted!");
+                              });
+                            }
+                          }} className="bg-blue-500 text-white px-3 py-1 rounded text-xs font-bold hover:bg-blue-600">Rate Farmer</button>
                         )}
                       </div>
                     </div>
@@ -637,6 +689,53 @@ export default function OwnerDashboard() {
           </div>
         )}
 
+        {/* --- ANALYTICS --- */}
+        {activeTab === 'analytics' && (
+          <div className="space-y-6">
+            <div className="grid md:grid-cols-2 gap-6">
+              {/* Smart Pricing */}
+              <div className="bg-white rounded-xl shadow-lg p-8">
+                <h3 className="text-xl font-bold text-agri-dark mb-4">Smart Pricing Engine</h3>
+                <div className="space-y-4">
+                  <input placeholder="Equipment Name (e.g. Tractor)" className="w-full border p-3 rounded-lg" id="sp_eq" />
+                  <input placeholder="District" className="w-full border p-3 rounded-lg" id="sp_dist" />
+                  <button onClick={async () => {
+                    const eq = document.getElementById("sp_eq").value;
+                    const dist = document.getElementById("sp_dist").value;
+                    if (!eq || !dist) return alert("Enter details");
+                    try {
+                      const res = await fetch(`${API_BASE}/v1/ai/smart-pricing`, {
+                        method: "POST", headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ equipment: eq, district: dist })
+                      });
+                      const data = await res.json();
+                      alert(`Suggested Price: ₹${data.data.suggested_price}/day\nMarket Average: ₹${data.data.market_average}/day`);
+                    } catch (e) { console.error(e); }
+                  }} className="w-full bg-agri-green text-white py-3 rounded-lg font-bold">Get Price Suggestion</button>
+                </div>
+              </div>
+
+              {/* Impact Analytics */}
+              <div className="bg-white rounded-xl shadow-lg p-8">
+                <h3 className="text-xl font-bold text-agri-dark mb-4">Impact Analytics</h3>
+                <div className="space-y-4">
+                  <p className="text-gray-600">Estimate cost savings for farmers using your equipment.</p>
+                  <button onClick={async () => {
+                    try {
+                      const res = await fetch(`${API_BASE}/v1/ai/impact-analytics`, {
+                        method: "POST", headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ hours_used: 50, equipment_type: "Tractor" })
+                      });
+                      const data = await res.json();
+                      alert(`Impact Report:\nManual Hours Saved: ${data.data.manual_hours_saved}\nCost Savings: ₹${data.data.cost_savings}`);
+                    } catch (e) { console.error(e); }
+                  }} className="w-full bg-blue-600 text-white py-3 rounded-lg font-bold">Generate Impact Report</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* --- SETTINGS --- */}
         {activeTab === 'settings' && (
           <div className="bg-white rounded-xl shadow-lg p-8">
@@ -654,24 +753,98 @@ export default function OwnerDashboard() {
         )}
       </div>
 
-      {/* ADD EQUIPMENT MODAL */}
       {showAddModal && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
           <div className="bg-white p-6 rounded-xl w-full max-w-lg shadow-2xl">
             <h2 className="font-bold text-xl mb-4 text-agri-dark">Add New Equipment</h2>
-            <input name="equipment_name" placeholder="Name" className="w-full border-2 p-3 rounded-lg mb-3" value={equipmentForm.equipment_name} onChange={e => setEquipmentForm({ ...equipmentForm, equipment_name: e.target.value })} />
-            <select name="category" className="w-full border-2 p-3 rounded-lg mb-3" value={equipmentForm.category} onChange={e => setEquipmentForm({ ...equipmentForm, category: e.target.value })}>
+
+            <select
+              name="category"
+              className="w-full border-2 p-3 rounded-lg mb-3"
+              value={equipmentForm.category}
+              onChange={e => setEquipmentForm({ ...equipmentForm, category: e.target.value, subCategory: "" })}
+            >
               <option value="">Select Category</option>
-              {["Land Preparation", "Sowing & Planting", "Irrigation", "Harvesting", "Storage", "Transport", "Small Tools"].map(c => <option key={c} value={c + " Equipment"}>{c}</option>)}
+              <option value="Land Preparation Equipment">Land Preparation Equipment</option>
+              <option value="Sowing & Planting Equipment">Sowing & Planting Equipment</option>
+              <option value="Irrigation Equipment">Irrigation Equipment</option>
+              <option value="Crop Protection Equipment">Crop Protection Equipment</option>
+              <option value="Fertilizer & Manure Application">Fertilizer & Manure Application</option>
+              <option value="Harvesting Equipment">Harvesting Equipment</option>
+              <option value="Post-Harvest Equipment">Post-Harvest Equipment</option>
+              <option value="Storage & Handling Equipment">Storage & Handling Equipment</option>
+              <option value="Transport & Material Handling">Transport & Material Handling</option>
+              <option value="Orchard & Plantation Equipment">Orchard & Plantation Equipment</option>
+              <option value="Renewable & Smart Farming Equipment">Renewable & Smart Farming Equipment</option>
+              <option value="Small Tools & Accessories">Small Tools & Accessories</option>
             </select>
-            <textarea name="description" placeholder="Description" className="w-full border-2 p-3 rounded-lg mb-3" value={equipmentForm.description} onChange={e => setEquipmentForm({ ...equipmentForm, description: e.target.value })} />
+
+            {equipmentForm.category && (
+              <select
+                name="subCategory"
+                className="w-full border-2 p-3 rounded-lg mb-3"
+                value={equipmentForm.subCategory}
+                onChange={e => setEquipmentForm({ ...equipmentForm, subCategory: e.target.value })}
+              >
+                <option value="">Select Equipment Type</option>
+                {equipmentForm.category === "Land Preparation Equipment" && ["Tractor", "Power Tiller", "Plough", "Harrow", "Cultivator", "Rotavator", "Subsoiler", "Land Leveler", "Laser Land Leveler"].map(sub => <option key={sub} value={sub}>{sub}</option>)}
+                {equipmentForm.category === "Sowing & Planting Equipment" && ["Seed Drill", "Seed Cum Fertilizer Drill", "Planter", "Rice Transplanter", "Potato Planter", "Maize Planter", "Sugarcane Planter", "Nursery Seeder", "Dibber"].map(sub => <option key={sub} value={sub}>{sub}</option>)}
+                {equipmentForm.category === "Irrigation Equipment" && ["Water Pump", "Drip Irrigation System", "Sprinkler System", "Hose Pipes", "Rain Gun", "Micro Irrigation System", "Submersible Pump", "Centrifugal Pump"].map(sub => <option key={sub} value={sub}>{sub}</option>)}
+                {equipmentForm.category === "Crop Protection Equipment" && ["Knapsack Sprayer", "Boom Sprayer", "Fogger", "Duster", "Weed Cutter", "Brush Cutter", "Drone Sprayer"].map(sub => <option key={sub} value={sub}>{sub}</option>)}
+                {equipmentForm.category === "Fertilizer & Manure Application" && ["Fertilizer Spreader", "Manure Spreader", "Compost Spreader", "Broadcast Sprayer"].map(sub => <option key={sub} value={sub}>{sub}</option>)}
+                {equipmentForm.category === "Harvesting Equipment" && ["Harvester", "Combine Harvester", "Reaper", "Reaper Binder", "Paddy Harvester", "Sugarcane Harvester", "Forage Harvester"].map(sub => <option key={sub} value={sub}>{sub}</option>)}
+                {equipmentForm.category === "Post-Harvest Equipment" && ["Thresher", "Winnower", "Grain Cleaner", "Dehusker", "Paddy Separator", "Maize Separator", "Grain Dryer", "Baler"].map(sub => <option key={sub} value={sub}>{sub}</option>)}
+                {equipmentForm.category === "Storage & Handling Equipment" && ["Grain Storage Bins", "Cold Storage Units", "Silage Bags", "Crates", "Weighing Scale", "Conveyor Belt"].map(sub => <option key={sub} value={sub}>{sub}</option>)}
+                {equipmentForm.category === "Transport & Material Handling" && ["Tractor Trolley", "Trailer", "Farm Cart", "Mini Truck", "Forklift", "Hand Trolley"].map(sub => <option key={sub} value={sub}>{sub}</option>)}
+                {equipmentForm.category === "Orchard & Plantation Equipment" && ["Pruning Machine", "Orchard Sprayer", "Hedge Trimmer", "Fruit Picker", "Mulcher", "Chipper"].map(sub => <option key={sub} value={sub}>{sub}</option>)}
+                {equipmentForm.category === "Renewable & Smart Farming Equipment" && ["Solar Pump", "Soil Moisture Sensor", "Weather Station", "GPS Tracker", "Farm Drone", "Yield Monitor"].map(sub => <option key={sub} value={sub}>{sub}</option>)}
+                {equipmentForm.category === "Small Tools & Accessories" && ["Chainsaw", "Power Weeder", "Auger", "Earth Auger", "Generator", "Pressure Washer"].map(sub => <option key={sub} value={sub}>{sub}</option>)}
+              </select>
+            )}
+
+            <input
+              name="district"
+              placeholder="District"
+              className="w-full border-2 p-3 rounded-lg mb-3"
+              value={equipmentForm.district}
+              onChange={e => setEquipmentForm({ ...equipmentForm, district: e.target.value })}
+            />
+
+            <textarea
+              name="description"
+              placeholder="Description"
+              className="w-full border-2 p-3 rounded-lg mb-3"
+              value={equipmentForm.description}
+              onChange={e => setEquipmentForm({ ...equipmentForm, description: e.target.value })}
+            />
+
             <div className="flex gap-4 mb-6">
-              <input name="price_per_hour" type="number" placeholder="₹/hr" className="w-full border-2 p-3 rounded-lg" value={equipmentForm.price_per_hour} onChange={e => setEquipmentForm({ ...equipmentForm, price_per_hour: e.target.value })} />
-              <input name="price_per_day" type="number" placeholder="₹/day" className="w-full border-2 p-3 rounded-lg" value={equipmentForm.price_per_day} onChange={e => setEquipmentForm({ ...equipmentForm, price_per_day: e.target.value })} />
+              <input
+                name="ratePerHour"
+                type="number"
+                placeholder="₹/hr"
+                className="w-full border-2 p-3 rounded-lg"
+                value={equipmentForm.ratePerHour}
+                onChange={e => setEquipmentForm({ ...equipmentForm, ratePerHour: e.target.value })}
+              />
+              <input
+                name="ratePerDay"
+                type="number"
+                placeholder="₹/day"
+                className="w-full border-2 p-3 rounded-lg"
+                value={equipmentForm.ratePerDay}
+                onChange={e => setEquipmentForm({ ...equipmentForm, ratePerDay: e.target.value })}
+              />
             </div>
+
             <div className="flex justify-end gap-3">
+
               <button onClick={() => setShowAddModal(false)} className="px-6 py-2 rounded-lg border hover:bg-gray-100">Cancel</button>
-              <button onClick={handleAddEquipment} className="px-6 py-2 rounded-lg bg-agri-green text-white">Add</button>
+              <button type="button"
+                onClick={() => handleAddEquipment()}
+                className="px-6 py-2 rounded-lg bg-agri-green text-white">
+                Add
+              </button>
             </div>
           </div>
         </div>

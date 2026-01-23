@@ -128,13 +128,6 @@ const equipmentSchema = new mongoose.Schema(
       required: true,
     },
 
-    // Canonical name used by frontend + API
-    equipment_name: {
-      type: String,
-      required: true,
-      trim: true,
-    },
-
     // ✅ MAIN CATEGORY (stored)
     category: {
       type: String,
@@ -142,66 +135,38 @@ const equipmentSchema = new mongoose.Schema(
       enum: Object.keys(CATEGORY_MAP),
     },
 
-    // ✅ SUB CATEGORY / EQUIPMENT TYPE (stored) (backward compatibility)
-    // Many flows in this repo treat equipment_name as the sub-category/type.
+    // ✅ SUB CATEGORY / EQUIPMENT TYPE (stored)
     subCategory: {
       type: String,
-      required: false,
+      required: true,
       validate: {
         validator: function (value) {
-          if (!value) return true;
           return CATEGORY_MAP[this.category]?.includes(value);
         },
         message: "Sub-category does not belong to selected category",
       },
     },
-
+    description: {
+      type: String,
+      required: true,
+    },
     district: {
       type: String,
       required: true,
       trim: true,
     },
 
-    description: {
-      type: String,
-      default: "",
-      trim: true,
+    ratePerHour: {
+      type: Number,
+      required: true,
+      min: 0,
     },
 
-    // Canonical pricing fields used by frontend
-    price_per_hour: { type: Number, required: true, min: 0 },
-    price_per_day: { type: Number, required: true, min: 0 },
-
-    // Backward-compatible aliases (older code used these names)
-    ratePerHour: { type: Number, required: false, min: 0 },
-    ratePerDay: { type: Number, required: false, min: 0 },
-
-    // Moderation lifecycle (used by admin + farmer fetch)
-    approval_status: {
-      type: String,
-      enum: ["pending", "approved", "rejected"],
-      default: "pending",
+    ratePerDay: {
+      type: Number,
+      required: true,
+      min: 0,
     },
-    status: {
-      type: String,
-      enum: ["inactive", "active", "deleted"],
-      default: "inactive",
-    },
-
-    // Location tracking (GeoJSON Point)
-    location: {
-      type: {
-        type: String,
-        enum: ["Point"],
-        default: "Point",
-      },
-      coordinates: {
-        type: [Number], // [lng, lat]
-        default: undefined,
-      },
-    },
-    location_label: { type: String, default: "", trim: true }, // e.g., address/village
-    last_location_updated_at: { type: Date },
 
     ratings: {
       type: Number,
@@ -209,25 +174,9 @@ const equipmentSchema = new mongoose.Schema(
       min: 0,
       max: 5,
     },
-    ratings_count: { type: Number, default: 0, min: 0 },
   },
   { timestamps: true }
 );
 
-// Geo index for map queries
-equipmentSchema.index({ location: "2dsphere" });
-
-// Keep older fields in sync if only one set is provided
-equipmentSchema.pre("validate", function (next) {
-  if (this.price_per_hour == null && this.ratePerHour != null) this.price_per_hour = this.ratePerHour;
-  if (this.price_per_day == null && this.ratePerDay != null) this.price_per_day = this.ratePerDay;
-  if (this.ratePerHour == null && this.price_per_hour != null) this.ratePerHour = this.price_per_hour;
-  if (this.ratePerDay == null && this.price_per_day !=null) this.ratePerDay = this.price_per_day;
-
-  if (!this.subCategory && this.equipment_name) {
-    this.subCategory = this.equipment_name;
-  }
-  next();
-});
-
 module.exports = mongoose.model("Equipment", equipmentSchema);
+

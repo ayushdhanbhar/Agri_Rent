@@ -111,6 +111,9 @@ const chatbotRouter = require("./routes/chatbotRoute");
 app.use("/", disputeRouter)
 app.use("/", chatbotRouter);
 
+const aiRouter = require("./routes/aiRoutes");
+app.use("/", aiRouter);
+
 // Global Error Handler
 app.use((err, req, res, next) => {
     console.error(err.stack);
@@ -121,7 +124,7 @@ app.use((err, req, res, next) => {
 });
 
 app.get('/api/activate', (req, res) => {
-  res.json({ message: 'Hello from the server!' });
+    res.json({ message: 'Hello from the server!' });
 });
 server.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);

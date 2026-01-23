@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
+import { io } from "socket.io-client";
 
 // Fix default marker icon paths for Vite
 delete L.Icon.Default.prototype._getIconUrl;
@@ -12,11 +13,13 @@ L.Icon.Default.mergeOptions({
 });
 
 const API_BASE = "http://localhost:8000/api";
+const SOCKET_URL = "http://localhost:8000";
 
 export default function EquipmentMap({ district }) {
   const [equipments, setEquipments] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  // Fetch initial data
   useEffect(() => {
     let cancelled = false;
     async function run() {
@@ -37,6 +40,35 @@ export default function EquipmentMap({ district }) {
       cancelled = true;
     };
   }, [district]);
+
+  // Socket.IO for real-time updates
+  useEffect(() => {
+    const socket = io(SOCKET_URL);
+
+    socket.on("connect", () => {
+      console.log("EquipmentMap connected to socket:", socket.id);
+    });
+
+    socket.on("equipment_location_update", (updatedData) => {
+      console.log("Received location update:", updatedData);
+      setEquipments((prev) => {
+        return prev.map((eq) => {
+          if (eq._id === updatedData.equipment_id) {
+            return {
+              ...eq,
+              location: updatedData.location,
+              location_label: updatedData.location_label,
+            };
+          }
+          return eq;
+        });
+      });
+    });
+
+    return () => {
+      socket.disconnect();
+    };
+  }, []);
 
   const points = useMemo(() => {
     return (equipments || [])
