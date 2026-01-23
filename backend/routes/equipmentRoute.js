@@ -20,6 +20,6 @@ equipmentRouter.get("/api/v1/equipments/map", equipmentController.fetchForMap)
 equipmentRouter.post("/api/v1/equipments/location/:equipmentId", equipmentController.updateLocation)
 
 // delete equipment
-equipmentRouter.delete("/api/v1/equipments/delete/:equipmentId", equipmentController.delete)
+equipmentRouter.delete("/api/v1/equipments/delete/:equipmentId", equipmentController.deleteEqp)
 
 module.exports = equipmentRouter

@@ -37,11 +37,11 @@ let equipmentController = {
             "data": equipments
         })
     }),
-    delete: asyncHandler(async (req, res) => {
-        const { equipmentId } = req.params;
-        await Equipment.findByIdAndDelete(equipmentId);
-        res.json({ message: "Equipment deleted successfully." });
-    }),
+    // delete: asyncHandler(async (req, res) => {
+    //     const { equipmentId } = req.params;
+    //     await Equipment.findByIdAndDelete(equipmentId);
+    //     res.json({ message: "Equipment deleted successfully." });
+    // }),
     // For map-based listing (farmers)
     fetchForMap: asyncHandler(async (req, res) => {
         const { district } = req.query;
@@ -94,6 +94,11 @@ let equipmentController = {
     delete: asyncHandler(async (req, res) => {
         const { equipmentId } = req.params;
         await Equipment.findByIdAndUpdate(equipmentId, { status: "deleted" });
+        res.json({ message: "Equipment deleted successfully." });
+    }),
+    deleteEqp: asyncHandler(async (req, res)=>{
+        let { equipmentId } = req.params;
+        await Equipment.findByIdAndDelete(equipmentId)
         res.json({ message: "Equipment deleted successfully." });
     })
 }
