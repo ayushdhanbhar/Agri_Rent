@@ -10,8 +10,7 @@ equipmentRouter.post("/api/v1/equipments/add", equipmentController.add)
 equipmentRouter.get("/api/v1/equipments/view/:userId", equipmentController.view)
 
 // fetch equipments
-// fetch equipments
-equipmentRouter.get("/api/v1/equipments/fetch", equipmentController.fetch)
+equipmentRouter.get("/api/v1/equipments/fetch/:district", equipmentController.fetch)
 
 // map listing (only those with location set)
 equipmentRouter.get("/api/v1/equipments/map", equipmentController.fetchForMap)

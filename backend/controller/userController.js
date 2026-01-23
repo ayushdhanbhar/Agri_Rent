@@ -44,7 +44,8 @@ let userController = {
             "token": token,
             "role": userExists.role,
             "user_id": userExists._id,
-            "name": userExists.name
+            "name": userExists.name,
+            "district": userExists.district
         })
     }),
     update: asyncHandler(async (req, res) => {

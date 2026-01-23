@@ -82,7 +82,8 @@ export default function Login() {
           token: data.token,
           role: data.role,
           user_id: data.user_id,
-          name: data.name
+          name: data.name,
+          district: data.district
         });
 
         setSubmitted(true);

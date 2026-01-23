@@ -95,7 +95,8 @@ export default function FarmerDashboard() {
 
   const fetchRentableEquipment = async () => {
     try {
-      const res = await fetch(`${API_BASE}/v1/equipments/fetch`);
+      const district = localStorage.getItem('district')
+      const res = await fetch(`${API_BASE}/v1/equipments/fetch/${district}`);
       const data = await res.json();
       if (data.data) setRentableEquipment(data.data);
     } catch (err) { console.error(err); }
@@ -121,7 +122,7 @@ export default function FarmerDashboard() {
       const res = await fetch(`${API_BASE}/v1/users/get/${id}`); // Educated guess
       if (!res.ok) {
         // Fallback: try to find name in localStorage if we saved it on login
-        const localName = localStorage.getItem("user_name");
+        const localName = localStorage.getItem("name");
         if (localName) setUserName(localName);
         return;
       }

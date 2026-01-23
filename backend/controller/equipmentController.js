@@ -31,7 +31,8 @@ let equipmentController = {
         });
     }),
     fetch: asyncHandler(async (req, res) => {
-        let equipments = await Equipment.find({}).populate("owner_id");
+        let { district } = req.params;
+        let equipments = await Equipment.find({ district: district });
         res.json({
             "message": "Equipments fetched successfully.",
             "data": equipments
