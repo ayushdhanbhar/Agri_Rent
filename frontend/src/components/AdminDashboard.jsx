@@ -28,7 +28,7 @@ ChartJS.register(
   ArcElement
 );
 
-const API_BASE = "https://hackmatrix-rvgm.onrender.com/api";
+const API_BASE = "http://localhost:8000/api";
 
 export default function AdminDashboard() {
   const navigate = useNavigate();

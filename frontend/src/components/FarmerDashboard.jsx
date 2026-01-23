@@ -19,8 +19,8 @@ import { getCategoryIcon } from "./CategoryIcons";
 import { io } from "socket.io-client";
 import { motion, AnimatePresence } from "framer-motion";
 
-const API_BASE = "https://hackmatrix-rvgm.onrender.com/api";
-const SOCKET_URL = "https://hackmatrix-rvgm.onrender.com";
+const API_BASE = "http://localhost:8000/api";
+const SOCKET_URL = "http://localhost:8000";
 
 export default function FarmerDashboard() {
   const navigate = useNavigate();
