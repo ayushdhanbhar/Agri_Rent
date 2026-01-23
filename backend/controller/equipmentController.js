@@ -93,7 +93,7 @@ let equipmentController = {
     }),
     delete: asyncHandler(async (req, res) => {
         const { equipmentId } = req.params;
-        await Equipment.findByIdAndUpdate(equipmentId, { status: "deleted" });
+        await Equipment.findByIdAndDelete(equipmentId);
         res.json({ message: "Equipment deleted successfully." });
     }),
     deleteEqp: asyncHandler(async (req, res)=>{

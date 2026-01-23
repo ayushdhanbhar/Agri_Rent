@@ -9,7 +9,7 @@ const reviewController = {
         // We assume 'reviewee_id' points to the Owner
         const reviews = await Review.find({ reviewee_id: ownerId })
             .populate("reviewer_id", "name") // User who wrote the review (Farmer)
-            .populate("equipment_id", "equipment_name");
+            .populate("equipment_id", "subCategory category");
 
         res.json({
             message: "Reviews fetched successfully.",

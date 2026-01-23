@@ -30,6 +30,44 @@ ChartJS.register(
 
 const API_BASE = "http://localhost:8000/api";
 const SOCKET_URL = "http://localhost:8000";
+const maharashtraDistricts = [
+  "Ahmednagar",
+  "Akola",
+  "Amravati",
+  "Chhatrapati Sambhajinagar",
+  "Beed",
+  "Bhandara",
+  "Buldhana",
+  "Chandrapur",
+  "Dhule",
+  "Gadchiroli",
+  "Gondia",
+  "Hingoli",
+  "Jalgaon",
+  "Jalna",
+  "Kolhapur",
+  "Latur",
+  "Mumbai City",
+  "Mumbai Suburban",
+  "Nagpur",
+  "Nanded",
+  "Nandurbar",
+  "Nashik",
+  "Dharashiv",
+  "Palghar",
+  "Parbhani",
+  "Pune",
+  "Raigad",
+  "Ratnagiri",
+  "Sangli",
+  "Satara",
+  "Sindhudurg",
+  "Solapur",
+  "Thane",
+  "Wardha",
+  "Washim",
+  "Yavatmal"
+]
 
 export default function OwnerDashboard() {
   const navigate = useNavigate();
@@ -59,8 +97,8 @@ export default function OwnerDashboard() {
   const [equipmentForm, setEquipmentForm] = useState({
     category: "",
     subCategory: "",
-    district: "",
     description: "",
+    district: "",
     ratePerHour: "",
     ratePerDay: "",
   });
@@ -224,8 +262,11 @@ export default function OwnerDashboard() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
-
-      if (!res.ok) {
+      if (res.ok) {
+        setShowAddModal(false);
+        setEquipmentForm({ category: "", subCategory: "", description: "", district: "", ratePerHour: "", ratePerDay: "" });
+        fetchInventory(userId);
+      } else {
         alert("Failed to add equipment");
         return;
       }
@@ -357,6 +398,7 @@ export default function OwnerDashboard() {
 
   const [disputes, setDisputes] = useState([]);
   const [newDispute, setNewDispute] = useState({ issue_type: '', description: '' });
+  const [smartPricingResult, setSmartPricingResult] = useState(null);
 
   const fetchDisputes = async () => {
     try {
@@ -477,11 +519,13 @@ export default function OwnerDashboard() {
                   <div className="flex items-center justify-center mb-4 bg-gradient-to-br from-agri-light to-agri-cream p-4 rounded-lg">
                     {getCategoryIcon(item.category, 50, '#3d6e2e')}
                   </div>
-                  <h3 className="font-bold text-agri-dark mb-2 text-xl text-center">{item.equipment_name}</h3>
+                  <h3 className="font-bold text-agri-dark mb-2 text-xl text-center">{item.subCategory}</h3>
                   <p className="text-sm text-agri-green font-semibold mb-3 uppercase tracking-wide text-center">{item.category}</p>
+                  <p className="text-xs text-gray-600 mb-3 text-center">{item.description}</p>
+                  <p className="text-xs text-gray-500 mb-2 text-center">📍 {item.district}</p>
                   <div className="space-y-2 text-sm mb-4">
-                    <p className="flex justify-between"><span className="text-gray-600">Price/Hour:</span><span className="font-semibold text-agri-dark">₹{item.price_per_hour}</span></p>
-                    <p className="flex justify-between"><span className="text-gray-600">Price/Day:</span><span className="font-semibold text-agri-dark">₹{item.price_per_day}</span></p>
+                    <p className="flex justify-between"><span className="text-gray-600">Price/Hour:</span><span className="font-semibold text-agri-dark">₹{item.ratePerHour}</span></p>
+                    <p className="flex justify-between"><span className="text-gray-600">Price/Day:</span><span className="font-semibold text-agri-dark">₹{item.ratePerDay}</span></p>
                   </div>
                   <button onClick={() => handleDeleteEquipment(item._id)} className="w-full mt-2 bg-red-50 text-red-500 border border-red-200 py-2 rounded hover:bg-red-500 hover:text-white transition font-semibold">
                     Delete Equipment
@@ -502,7 +546,7 @@ export default function OwnerDashboard() {
                   <div key={idx} className="border-l-4 border-agri-green bg-agri-light/20 p-6 rounded-r-lg hover:shadow-md transition">
                     <div className="flex items-center justify-between">
                       <div className="flex-1">
-                        <p className="font-bold text-agri-dark text-lg">{booking.equipment_id?.equipment_name || "Unknown Equipment"}</p>
+                        <p className="font-bold text-agri-dark text-lg">{booking.equipment_id?.subCategory || "Unknown Equipment"}</p>
                         <p className="text-gray-800 text-sm font-semibold">Farmer: {booking.farmer_id?.name || "Unknown"} ({booking.farmer_id?.phone})</p>
                         <p className="text-gray-600 text-sm">{new Date(booking.start_datetime).toLocaleDateString()} - {new Date(booking.end_datetime).toLocaleDateString()}</p>
                         <p className="text-gray-600 text-sm">Total: ₹{booking.total_amount}</p>
@@ -704,14 +748,33 @@ export default function OwnerDashboard() {
                     const dist = document.getElementById("sp_dist").value;
                     if (!eq || !dist) return alert("Enter details");
                     try {
-                      const res = await fetch(`${API_BASE}/v1/ai/smart-pricing`, {
+                      const res = await fetch(`http://localhost:5000/smart-pricing`, {
                         method: "POST", headers: { "Content-Type": "application/json" },
                         body: JSON.stringify({ equipment: eq, district: dist })
                       });
                       const data = await res.json();
-                      alert(`Suggested Price: ₹${data.data.suggested_price}/day\nMarket Average: ₹${data.data.market_average}/day`);
-                    } catch (e) { console.error(e); }
+                      setSmartPricingResult(data);
+                    } catch (e) { console.error(e); alert("Error fetching price suggestion"); }
                   }} className="w-full bg-agri-green text-white py-3 rounded-lg font-bold">Get Price Suggestion</button>
+                  {smartPricingResult && (
+                    <div className="mt-6 p-4 bg-gradient-to-br from-blue-50 to-green-50 rounded-lg border border-agri-green">
+                      <h4 className="font-bold text-agri-dark mb-3">Pricing Recommendation</h4>
+                      <div className="space-y-2">
+                        <div className="flex justify-between items-center">
+                          <span className="text-gray-700">Suggested Price:</span>
+                          <span className="font-bold text-agri-green text-lg">₹{smartPricingResult.suggested_price}/day</span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-gray-700">Market Average:</span>
+                          <span className="font-bold text-gray-900 text-lg">₹{smartPricingResult.market_average}/day</span>
+                        </div>
+                        {/* <div className="flex justify-between items-center">
+                          <span className="text-gray-700">Currency:</span>
+                          <span className="font-semibold">{smartPricingResult.currency}</span>
+                        </div> */}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -757,11 +820,11 @@ export default function OwnerDashboard() {
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
           <div className="bg-white p-6 rounded-xl w-full max-w-lg shadow-2xl">
             <h2 className="font-bold text-xl mb-4 text-agri-dark">Add New Equipment</h2>
-
-            <select
-              name="category"
-              className="w-full border-2 p-3 rounded-lg mb-3"
-              value={equipmentForm.category}
+            
+            <select 
+              name="category" 
+              className="w-full border-2 p-3 rounded-lg mb-3" 
+              value={equipmentForm.category} 
               onChange={e => setEquipmentForm({ ...equipmentForm, category: e.target.value, subCategory: "" })}
             >
               <option value="">Select Category</option>
@@ -780,10 +843,10 @@ export default function OwnerDashboard() {
             </select>
 
             {equipmentForm.category && (
-              <select
-                name="subCategory"
-                className="w-full border-2 p-3 rounded-lg mb-3"
-                value={equipmentForm.subCategory}
+              <select 
+                name="subCategory" 
+                className="w-full border-2 p-3 rounded-lg mb-3" 
+                value={equipmentForm.subCategory} 
                 onChange={e => setEquipmentForm({ ...equipmentForm, subCategory: e.target.value })}
               >
                 <option value="">Select Equipment Type</option>
@@ -802,38 +865,49 @@ export default function OwnerDashboard() {
               </select>
             )}
 
-            <input
-              name="district"
-              placeholder="District"
-              className="w-full border-2 p-3 rounded-lg mb-3"
-              value={equipmentForm.district}
-              onChange={e => setEquipmentForm({ ...equipmentForm, district: e.target.value })}
-            />
+           <select
+  name="district"
+  className="w-full border-2 p-3 rounded-lg mb-3 bg-white"
+  value={equipmentForm.district}
+  onChange={e =>
+    setEquipmentForm({ ...equipmentForm, district: e.target.value })
+  }
+  required
+>
+  <option value="">Select District</option>
 
-            <textarea
-              name="description"
-              placeholder="Description"
-              className="w-full border-2 p-3 rounded-lg mb-3"
-              value={equipmentForm.description}
-              onChange={e => setEquipmentForm({ ...equipmentForm, description: e.target.value })}
+  {maharashtraDistricts.map((district, index) => (
+    <option key={index} value={district}>
+      {district}
+    </option>
+  ))}
+</select>
+
+
+            <textarea 
+              name="description" 
+              placeholder="Description" 
+              className="w-full border-2 p-3 rounded-lg mb-3" 
+              value={equipmentForm.description} 
+              onChange={e => setEquipmentForm({ ...equipmentForm, description: e.target.value })} 
             />
 
             <div className="flex gap-4 mb-6">
-              <input
-                name="ratePerHour"
-                type="number"
-                placeholder="₹/hr"
-                className="w-full border-2 p-3 rounded-lg"
-                value={equipmentForm.ratePerHour}
-                onChange={e => setEquipmentForm({ ...equipmentForm, ratePerHour: e.target.value })}
+              <input 
+                name="ratePerHour" 
+                type="number" 
+                placeholder="₹/hr" 
+                className="w-full border-2 p-3 rounded-lg" 
+                value={equipmentForm.ratePerHour} 
+                onChange={e => setEquipmentForm({ ...equipmentForm, ratePerHour: e.target.value })} 
               />
-              <input
-                name="ratePerDay"
-                type="number"
-                placeholder="₹/day"
-                className="w-full border-2 p-3 rounded-lg"
-                value={equipmentForm.ratePerDay}
-                onChange={e => setEquipmentForm({ ...equipmentForm, ratePerDay: e.target.value })}
+              <input 
+                name="ratePerDay" 
+                type="number" 
+                placeholder="₹/day" 
+                className="w-full border-2 p-3 rounded-lg" 
+                value={equipmentForm.ratePerDay} 
+                onChange={e => setEquipmentForm({ ...equipmentForm, ratePerDay: e.target.value })} 
               />
             </div>
 

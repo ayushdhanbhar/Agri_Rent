@@ -372,7 +372,7 @@ export default function AdminDashboard() {
               {equipment.map(item => (
                 <div key={item._id} className="border p-4 rounded-lg flex justify-between items-center hover:shadow-md">
                   <div>
-                    <h3 className="font-bold text-lg">{item.equipment_name}</h3>
+                    <h3 className="font-bold text-lg">{item.subCategory}</h3>
                     <p className="text-sm text-gray-500">Owner: {item.owner_id?.name || "Unknown"}</p>
                     <p className="text-xs mt-1 bg-gray-100 inline-block px-2 py-1 rounded">Status: {item.approval_status}</p>
                   </div>

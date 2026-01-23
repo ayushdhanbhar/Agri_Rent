@@ -36,7 +36,7 @@ const bookingController = {
         const { ownerId } = req.params;
         const bookings = await Booking.find({ owner_id: ownerId })
             .populate("farmer_id", "name email phone")
-            .populate("equipment_id", "equipment_name");
+            .populate("equipment_id", "subCategory category ratePerHour ratePerDay");
 
         res.json({
             message: "Owner bookings fetched successfully.",
@@ -49,7 +49,7 @@ const bookingController = {
         const { farmerId } = req.params;
         const bookings = await Booking.find({ farmer_id: farmerId })
             .populate("owner_id", "name email phone")
-            .populate("equipment_id", "equipment_name");
+            .populate("equipment_id", "subCategory category ratePerHour ratePerDay");
 
         res.json({
             message: "Farmer bookings fetched successfully.",
