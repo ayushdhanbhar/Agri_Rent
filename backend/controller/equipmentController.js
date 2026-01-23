@@ -3,14 +3,15 @@ let asyncHandler = require("express-async-handler")
 
 let equipmentController = {
     add: asyncHandler(async (req, res) => {
-        let { owner_id, equipment_name, category, district, price_per_hour, price_per_day } = req.body;
+        let { owner_id, category, subCategory, description, district, ratePerHour, ratePerDay } = req.body;
         let equipment = await Equipment.create({
             owner_id,
             category,
-            subCategory: equipment_name,
+            subCategory,
+            description,
             district,
-            ratePerHour: price_per_hour,
-            ratePerDay: price_per_day
+            ratePerHour,
+            ratePerDay
         });
         res.json({
             message: "Equipment added successfully.",
@@ -19,7 +20,7 @@ let equipmentController = {
     }),
     view: asyncHandler(async (req, res) => {
         let { userId } = req.params;
-        let equipments = await Equipment.find({ owner_id: userId, status: { $ne: "deleted" } }).populate("owner_id");
+        let equipments = await Equipment.find({ owner_id: userId }).populate("owner_id");
         if (!equipments || equipments.length === 0) {
             return res.status(200).json({ message: "No equipments found.", data: [] });
         }
@@ -29,7 +30,7 @@ let equipmentController = {
         });
     }),
     fetch: asyncHandler(async (req, res) => {
-        let equipments = await Equipment.find({ status: "active", approval_status: "approved" }) // Only active and approved for farmers
+        let equipments = await Equipment.find({}).populate("owner_id");
         res.json({
             "message": "Equipments fetched successfully.",
             "data": equipments
@@ -37,7 +38,7 @@ let equipmentController = {
     }),
     delete: asyncHandler(async (req, res) => {
         const { equipmentId } = req.params;
-        await Equipment.findByIdAndUpdate(equipmentId, { status: "deleted" });
+        await Equipment.findByIdAndDelete(equipmentId);
         res.json({ message: "Equipment deleted successfully." });
     })
 }

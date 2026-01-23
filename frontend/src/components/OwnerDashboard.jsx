@@ -30,6 +30,44 @@ ChartJS.register(
 
 const API_BASE = "http://localhost:8000/api";
 const SOCKET_URL = "http://localhost:8000";
+const maharashtraDistricts = [
+  "Ahmednagar",
+  "Akola",
+  "Amravati",
+  "Chhatrapati Sambhajinagar",
+  "Beed",
+  "Bhandara",
+  "Buldhana",
+  "Chandrapur",
+  "Dhule",
+  "Gadchiroli",
+  "Gondia",
+  "Hingoli",
+  "Jalgaon",
+  "Jalna",
+  "Kolhapur",
+  "Latur",
+  "Mumbai City",
+  "Mumbai Suburban",
+  "Nagpur",
+  "Nanded",
+  "Nandurbar",
+  "Nashik",
+  "Dharashiv",
+  "Palghar",
+  "Parbhani",
+  "Pune",
+  "Raigad",
+  "Ratnagiri",
+  "Sangli",
+  "Satara",
+  "Sindhudurg",
+  "Solapur",
+  "Thane",
+  "Wardha",
+  "Washim",
+  "Yavatmal"
+]
 
 export default function OwnerDashboard() {
   const navigate = useNavigate();
@@ -57,11 +95,12 @@ export default function OwnerDashboard() {
   // Forms
   const [showAddModal, setShowAddModal] = useState(false);
   const [equipmentForm, setEquipmentForm] = useState({
-    equipment_name: "",
     category: "",
+    subCategory: "",
     description: "",
-    price_per_hour: "",
-    price_per_day: "",
+    district: "",
+    ratePerHour: "",
+    ratePerDay: "",
   });
 
   const [profileForm, setProfileForm] = useState({
@@ -207,7 +246,7 @@ export default function OwnerDashboard() {
       });
       if (res.ok) {
         setShowAddModal(false);
-        setEquipmentForm({ equipment_name: "", category: "", description: "", price_per_hour: "", price_per_day: "" });
+        setEquipmentForm({ category: "", subCategory: "", description: "", district: "", ratePerHour: "", ratePerDay: "" });
         fetchInventory(userId);
       } else {
         alert("Failed to add equipment");
@@ -446,11 +485,13 @@ export default function OwnerDashboard() {
                   <div className="flex items-center justify-center mb-4 bg-gradient-to-br from-agri-light to-agri-cream p-4 rounded-lg">
                     {getCategoryIcon(item.category, 50, '#3d6e2e')}
                   </div>
-                  <h3 className="font-bold text-agri-dark mb-2 text-xl text-center">{item.equipment_name}</h3>
+                  <h3 className="font-bold text-agri-dark mb-2 text-xl text-center">{item.subCategory}</h3>
                   <p className="text-sm text-agri-green font-semibold mb-3 uppercase tracking-wide text-center">{item.category}</p>
+                  <p className="text-xs text-gray-600 mb-3 text-center">{item.description}</p>
+                  <p className="text-xs text-gray-500 mb-2 text-center">📍 {item.district}</p>
                   <div className="space-y-2 text-sm mb-4">
-                    <p className="flex justify-between"><span className="text-gray-600">Price/Hour:</span><span className="font-semibold text-agri-dark">₹{item.price_per_hour}</span></p>
-                    <p className="flex justify-between"><span className="text-gray-600">Price/Day:</span><span className="font-semibold text-agri-dark">₹{item.price_per_day}</span></p>
+                    <p className="flex justify-between"><span className="text-gray-600">Price/Hour:</span><span className="font-semibold text-agri-dark">₹{item.ratePerHour}</span></p>
+                    <p className="flex justify-between"><span className="text-gray-600">Price/Day:</span><span className="font-semibold text-agri-dark">₹{item.ratePerDay}</span></p>
                   </div>
                   <button onClick={() => handleDeleteEquipment(item._id)} className="w-full mt-2 bg-red-50 text-red-500 border border-red-200 py-2 rounded hover:bg-red-500 hover:text-white transition font-semibold">
                     Delete Equipment
@@ -471,7 +512,7 @@ export default function OwnerDashboard() {
                   <div key={idx} className="border-l-4 border-agri-green bg-agri-light/20 p-6 rounded-r-lg hover:shadow-md transition">
                     <div className="flex items-center justify-between">
                       <div className="flex-1">
-                        <p className="font-bold text-agri-dark text-lg">{booking.equipment_id?.equipment_name || "Unknown Equipment"}</p>
+                        <p className="font-bold text-agri-dark text-lg">{booking.equipment_id?.subCategory || "Unknown Equipment"}</p>
                         <p className="text-gray-800 text-sm font-semibold">Farmer: {booking.farmer_id?.name || "Unknown"} ({booking.farmer_id?.phone})</p>
                         <p className="text-gray-600 text-sm">{new Date(booking.start_datetime).toLocaleDateString()} - {new Date(booking.end_datetime).toLocaleDateString()}</p>
                         <p className="text-gray-600 text-sm">Total: ₹{booking.total_amount}</p>
@@ -659,16 +700,97 @@ export default function OwnerDashboard() {
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
           <div className="bg-white p-6 rounded-xl w-full max-w-lg shadow-2xl">
             <h2 className="font-bold text-xl mb-4 text-agri-dark">Add New Equipment</h2>
-            <input name="equipment_name" placeholder="Name" className="w-full border-2 p-3 rounded-lg mb-3" value={equipmentForm.equipment_name} onChange={e => setEquipmentForm({ ...equipmentForm, equipment_name: e.target.value })} />
-            <select name="category" className="w-full border-2 p-3 rounded-lg mb-3" value={equipmentForm.category} onChange={e => setEquipmentForm({ ...equipmentForm, category: e.target.value })}>
+            
+            <select 
+              name="category" 
+              className="w-full border-2 p-3 rounded-lg mb-3" 
+              value={equipmentForm.category} 
+              onChange={e => setEquipmentForm({ ...equipmentForm, category: e.target.value, subCategory: "" })}
+            >
               <option value="">Select Category</option>
-              {["Land Preparation", "Sowing & Planting", "Irrigation", "Harvesting", "Storage", "Transport", "Small Tools"].map(c => <option key={c} value={c + " Equipment"}>{c}</option>)}
+              <option value="Land Preparation Equipment">Land Preparation Equipment</option>
+              <option value="Sowing & Planting Equipment">Sowing & Planting Equipment</option>
+              <option value="Irrigation Equipment">Irrigation Equipment</option>
+              <option value="Crop Protection Equipment">Crop Protection Equipment</option>
+              <option value="Fertilizer & Manure Application">Fertilizer & Manure Application</option>
+              <option value="Harvesting Equipment">Harvesting Equipment</option>
+              <option value="Post-Harvest Equipment">Post-Harvest Equipment</option>
+              <option value="Storage & Handling Equipment">Storage & Handling Equipment</option>
+              <option value="Transport & Material Handling">Transport & Material Handling</option>
+              <option value="Orchard & Plantation Equipment">Orchard & Plantation Equipment</option>
+              <option value="Renewable & Smart Farming Equipment">Renewable & Smart Farming Equipment</option>
+              <option value="Small Tools & Accessories">Small Tools & Accessories</option>
             </select>
-            <textarea name="description" placeholder="Description" className="w-full border-2 p-3 rounded-lg mb-3" value={equipmentForm.description} onChange={e => setEquipmentForm({ ...equipmentForm, description: e.target.value })} />
+
+            {equipmentForm.category && (
+              <select 
+                name="subCategory" 
+                className="w-full border-2 p-3 rounded-lg mb-3" 
+                value={equipmentForm.subCategory} 
+                onChange={e => setEquipmentForm({ ...equipmentForm, subCategory: e.target.value })}
+              >
+                <option value="">Select Equipment Type</option>
+                {equipmentForm.category === "Land Preparation Equipment" && ["Tractor", "Power Tiller", "Plough", "Harrow", "Cultivator", "Rotavator", "Subsoiler", "Land Leveler", "Laser Land Leveler"].map(sub => <option key={sub} value={sub}>{sub}</option>)}
+                {equipmentForm.category === "Sowing & Planting Equipment" && ["Seed Drill", "Seed Cum Fertilizer Drill", "Planter", "Rice Transplanter", "Potato Planter", "Maize Planter", "Sugarcane Planter", "Nursery Seeder", "Dibber"].map(sub => <option key={sub} value={sub}>{sub}</option>)}
+                {equipmentForm.category === "Irrigation Equipment" && ["Water Pump", "Drip Irrigation System", "Sprinkler System", "Hose Pipes", "Rain Gun", "Micro Irrigation System", "Submersible Pump", "Centrifugal Pump"].map(sub => <option key={sub} value={sub}>{sub}</option>)}
+                {equipmentForm.category === "Crop Protection Equipment" && ["Knapsack Sprayer", "Boom Sprayer", "Fogger", "Duster", "Weed Cutter", "Brush Cutter", "Drone Sprayer"].map(sub => <option key={sub} value={sub}>{sub}</option>)}
+                {equipmentForm.category === "Fertilizer & Manure Application" && ["Fertilizer Spreader", "Manure Spreader", "Compost Spreader", "Broadcast Sprayer"].map(sub => <option key={sub} value={sub}>{sub}</option>)}
+                {equipmentForm.category === "Harvesting Equipment" && ["Harvester", "Combine Harvester", "Reaper", "Reaper Binder", "Paddy Harvester", "Sugarcane Harvester", "Forage Harvester"].map(sub => <option key={sub} value={sub}>{sub}</option>)}
+                {equipmentForm.category === "Post-Harvest Equipment" && ["Thresher", "Winnower", "Grain Cleaner", "Dehusker", "Paddy Separator", "Maize Separator", "Grain Dryer", "Baler"].map(sub => <option key={sub} value={sub}>{sub}</option>)}
+                {equipmentForm.category === "Storage & Handling Equipment" && ["Grain Storage Bins", "Cold Storage Units", "Silage Bags", "Crates", "Weighing Scale", "Conveyor Belt"].map(sub => <option key={sub} value={sub}>{sub}</option>)}
+                {equipmentForm.category === "Transport & Material Handling" && ["Tractor Trolley", "Trailer", "Farm Cart", "Mini Truck", "Forklift", "Hand Trolley"].map(sub => <option key={sub} value={sub}>{sub}</option>)}
+                {equipmentForm.category === "Orchard & Plantation Equipment" && ["Pruning Machine", "Orchard Sprayer", "Hedge Trimmer", "Fruit Picker", "Mulcher", "Chipper"].map(sub => <option key={sub} value={sub}>{sub}</option>)}
+                {equipmentForm.category === "Renewable & Smart Farming Equipment" && ["Solar Pump", "Soil Moisture Sensor", "Weather Station", "GPS Tracker", "Farm Drone", "Yield Monitor"].map(sub => <option key={sub} value={sub}>{sub}</option>)}
+                {equipmentForm.category === "Small Tools & Accessories" && ["Chainsaw", "Power Weeder", "Auger", "Earth Auger", "Generator", "Pressure Washer"].map(sub => <option key={sub} value={sub}>{sub}</option>)}
+              </select>
+            )}
+
+           <select
+  name="district"
+  className="w-full border-2 p-3 rounded-lg mb-3 bg-white"
+  value={equipmentForm.district}
+  onChange={e =>
+    setEquipmentForm({ ...equipmentForm, district: e.target.value })
+  }
+  required
+>
+  <option value="">Select District</option>
+
+  {maharashtraDistricts.map((district, index) => (
+    <option key={index} value={district}>
+      {district}
+    </option>
+  ))}
+</select>
+
+
+            <textarea 
+              name="description" 
+              placeholder="Description" 
+              className="w-full border-2 p-3 rounded-lg mb-3" 
+              value={equipmentForm.description} 
+              onChange={e => setEquipmentForm({ ...equipmentForm, description: e.target.value })} 
+            />
+
             <div className="flex gap-4 mb-6">
-              <input name="price_per_hour" type="number" placeholder="₹/hr" className="w-full border-2 p-3 rounded-lg" value={equipmentForm.price_per_hour} onChange={e => setEquipmentForm({ ...equipmentForm, price_per_hour: e.target.value })} />
-              <input name="price_per_day" type="number" placeholder="₹/day" className="w-full border-2 p-3 rounded-lg" value={equipmentForm.price_per_day} onChange={e => setEquipmentForm({ ...equipmentForm, price_per_day: e.target.value })} />
+              <input 
+                name="ratePerHour" 
+                type="number" 
+                placeholder="₹/hr" 
+                className="w-full border-2 p-3 rounded-lg" 
+                value={equipmentForm.ratePerHour} 
+                onChange={e => setEquipmentForm({ ...equipmentForm, ratePerHour: e.target.value })} 
+              />
+              <input 
+                name="ratePerDay" 
+                type="number" 
+                placeholder="₹/day" 
+                className="w-full border-2 p-3 rounded-lg" 
+                value={equipmentForm.ratePerDay} 
+                onChange={e => setEquipmentForm({ ...equipmentForm, ratePerDay: e.target.value })} 
+              />
             </div>
+
             <div className="flex justify-end gap-3">
               <button onClick={() => setShowAddModal(false)} className="px-6 py-2 rounded-lg border hover:bg-gray-100">Cancel</button>
               <button onClick={handleAddEquipment} className="px-6 py-2 rounded-lg bg-agri-green text-white">Add</button>

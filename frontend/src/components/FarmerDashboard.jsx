@@ -8,6 +8,7 @@ import {
   Settings,
   Star,
   Send,
+  RefreshCw,
   Tractor,
   Home
 } from "lucide-react";
@@ -185,7 +186,7 @@ export default function FarmerDashboard() {
     const start = new Date(rentForm.start_datetime);
     const end = new Date(rentForm.end_datetime);
     const diffHrs = Math.abs(end - start) / 36e5;
-    const totalAmount = diffHrs * selectedEquipment.price_per_hour;
+    const totalAmount = diffHrs * selectedEquipment.ratePerHour;
 
     try {
       const res = await fetch(`${API_BASE}/v1/bookings/create`, {
@@ -327,6 +328,13 @@ export default function FarmerDashboard() {
 
   useEffect(() => { scrollToBottom(); }, [messages]);
 
+  // Refresh equipment data when rent tab becomes active
+  useEffect(() => {
+    if (activeTab === 'rent' && userId) {
+      fetchRentableEquipment();
+    }
+  }, [activeTab, userId]);
+
   // Sidebar Configuration
   const sidebarItems = [
     { id: 'rent', label: 'Browse', icon: Search, onClick: () => setActiveTab('rent'), isActive: activeTab === 'rent' },
@@ -358,11 +366,28 @@ export default function FarmerDashboard() {
       {/* --- RENT --- */}
       {activeTab === "rent" && (
         <div className="space-y-6">
-          <div className="flex gap-4">
+          <div className="flex gap-4 items-center">
             <select value={selectedCategory} onChange={(e) => setSelectedCategory(e.target.value)} className="border p-3 rounded-lg w-full md:w-1/3 shadow-sm bg-white">
               <option value="">All Categories</option>
-              {["Land Preparation", "Sowing & Planting", "Irrigation", "Harvesting", "Storage"].map(c => <option key={c} value={c + " Equipment"}>{c}</option>)}
+              {[
+                "Land Preparation Equipment",
+                "Sowing & Planting Equipment", 
+                "Irrigation Equipment",
+                "Crop Protection Equipment",
+                "Fertilizer & Manure Application",
+                "Harvesting Equipment",
+                "Post-Harvest Equipment",
+                "Storage & Handling Equipment",
+                "Transport & Material Handling",
+                "Orchard & Plantation Equipment",
+                "Renewable & Smart Farming Equipment",
+                "Small Tools & Accessories"
+              ].map(c => <option key={c} value={c}>{c}</option>)}
             </select>
+            <Button onClick={fetchRentableEquipment} variant="outline" className="flex items-center gap-2">
+              <RefreshCw size={16} />
+              Refresh
+            </Button>
           </div>
 
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -373,16 +398,16 @@ export default function FarmerDashboard() {
                     <div className="flex items-center justify-center mb-4 bg-gradient-to-br from-agri-light to-agri-cream p-4 rounded-lg">
                       {getCategoryIcon(eq.category, 50, '#3d6e2e')}
                     </div>
-                    <h3 className="font-bold text-xl text-agri-dark mb-1">{eq.equipment_name}</h3>
+                    <h3 className="font-bold text-xl text-agri-dark mb-1">{eq.subCategory}</h3>
                     <p className="text-xs font-bold text-agri-green uppercase tracking-wider mb-4">{eq.category}</p>
                     <div className="space-y-2 text-sm mb-6 text-gray-600">
                       <div className="flex justify-between">
                         <span>Price/Hour</span>
-                        <span className="font-bold text-gray-900">₹{eq.price_per_hour}</span>
+                        <span className="font-bold text-gray-900">₹{eq.ratePerHour}</span>
                       </div>
                       <div className="flex justify-between">
                         <span>Price/Day</span>
-                        <span className="font-bold text-gray-900">₹{eq.price_per_day}</span>
+                        <span className="font-bold text-gray-900">₹{eq.ratePerDay}</span>
                       </div>
                     </div>
                   </div>
@@ -404,7 +429,7 @@ export default function FarmerDashboard() {
             <Card key={booking._id} className="flex flex-col md:flex-row justify-between items-center gap-4">
               <div className="flex-1">
                 <div className="flex items-center gap-2 mb-1">
-                  <h3 className="font-bold text-lg text-agri-dark">{booking.equipment_id?.equipment_name}</h3>
+                  <h3 className="font-bold text-lg text-agri-dark">{booking.equipment_id?.subCategory}</h3>
                   {getStatusBadge(booking.booking_status)}
                 </div>
                 <p className="text-sm text-gray-600">Owner: {booking.owner_id?.name || "Unknown"}</p>

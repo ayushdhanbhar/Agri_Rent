@@ -146,7 +146,10 @@ const equipmentSchema = new mongoose.Schema(
         message: "Sub-category does not belong to selected category",
       },
     },
-
+    description: {
+      type: String,
+      required: true,
+    },
     district: {
       type: String,
       required: true,
