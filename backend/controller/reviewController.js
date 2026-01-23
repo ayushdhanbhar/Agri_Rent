@@ -17,6 +17,19 @@ const reviewController = {
         });
     }),
 
+    // Get reviews where the farmer is the reviewee (e.g. Owner rating a Farmer)
+    getReviewsByFarmer: asyncHandler(async (req, res) => {
+        const { farmerId } = req.params;
+        const reviews = await Review.find({ reviewee_id: farmerId })
+            .populate("reviewer_id", "name") // User who wrote the review (Owner)
+            .populate("equipment_id", "equipment_name"); // Contextual equipment
+
+        res.json({
+            message: "Reviews fetched successfully.",
+            data: reviews
+        });
+    }),
+
     // Add a review (optional, but good to have for testing)
     addReview: asyncHandler(async (req, res) => {
         const { booking_id, reviewer_id, reviewee_id, equipment_id, rating, comment } = req.body;

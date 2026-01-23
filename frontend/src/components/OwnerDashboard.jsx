@@ -237,12 +237,30 @@ export default function OwnerDashboard() {
     }
   };
 
-  const handleAddEquipment = async () => {
+  const handleAddEquipment = async (e) => {
+    if (e?.preventDefault) e.preventDefault();
+    if (e?.stopPropagation) e.stopPropagation();
+
+    // 🚨 HARD BLOCK: prevent HTMLButtonElement from leaking
+    if (e && e.target instanceof HTMLElement) {
+      e = null;
+    }
+
     try {
+      const payload = {
+        owner_id: userId,
+        category: equipmentForm.category,
+        subCategory: equipmentForm.subCategory,
+        district: equipmentForm.district,
+        description: equipmentForm.description,
+        ratePerHour: Number(equipmentForm.ratePerHour),
+        ratePerDay: Number(equipmentForm.ratePerDay),
+      };
+      console.log(payload);
       const res = await fetch(`${API_BASE}/v1/equipments/add`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...equipmentForm, owner_id: userId }),
+        body: JSON.stringify(payload),
       });
       if (res.ok) {
         setShowAddModal(false);
@@ -250,11 +268,25 @@ export default function OwnerDashboard() {
         fetchInventory(userId);
       } else {
         alert("Failed to add equipment");
+        return;
       }
+
+      setShowAddModal(false);
+      setEquipmentForm({
+        category: "",
+        subCategory: "",
+        district: "",
+        description: "",
+        ratePerHour: "",
+        ratePerDay: "",
+      });
+
+      fetchInventory(userId);
     } catch (err) {
-      console.error("Error adding equipment:", err);
+      console.error("Add equipment failed:", err?.message);
     }
   };
+
 
   const handleUpdateProfile = async () => {
     try {
@@ -366,6 +398,7 @@ export default function OwnerDashboard() {
 
   const [disputes, setDisputes] = useState([]);
   const [newDispute, setNewDispute] = useState({ issue_type: '', description: '' });
+  const [smartPricingResult, setSmartPricingResult] = useState(null);
 
   const fetchDisputes = async () => {
     try {
@@ -423,6 +456,7 @@ export default function OwnerDashboard() {
             { id: 'bookings', label: 'Bookings', icon: MapPin },
             { id: 'messages', label: 'Messages', icon: MessageCircle },
             { id: 'reviews', label: 'Reviews', icon: Star },
+            { id: 'analytics', label: 'Analytics', icon: BarChart3 },
             { id: 'disputes', label: 'Disputes', icon: AlertCircle },
             { id: 'settings', label: 'Settings', icon: Settings },
           ].map(tab => {
@@ -528,6 +562,27 @@ export default function OwnerDashboard() {
                             <button onClick={() => handleBookingStatus(booking._id, 'confirmed')} className="bg-green-500 text-white p-2 rounded-full hover:bg-green-600" title="Accept"><Check size={16} /></button>
                             <button onClick={() => handleBookingStatus(booking._id, 'cancelled')} className="bg-red-500 text-white p-2 rounded-full hover:bg-red-600" title="Reject"><X size={16} /></button>
                           </div>
+                        )}
+                        {(booking.booking_status === 'completed' || booking.booking_status === 'confirmed') && (
+                          <button onClick={() => {
+                            const rating = prompt("Rate this farmer (1-5):");
+                            const comment = prompt("Comment:");
+                            if (rating && comment) {
+                              fetch(`${API_BASE}/v1/reviews/add`, {
+                                method: "POST", headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify({
+                                  booking_id: booking._id,
+                                  reviewer_id: userId,
+                                  reviewee_id: booking.farmer_id?._id,
+                                  equipment_id: booking.equipment_id?._id,
+                                  rating: parseInt(rating),
+                                  comment
+                                })
+                              }).then(res => {
+                                if (res.ok) alert("Review submitted!");
+                              });
+                            }
+                          }} className="bg-blue-500 text-white px-3 py-1 rounded text-xs font-bold hover:bg-blue-600">Rate Farmer</button>
                         )}
                       </div>
                     </div>
@@ -678,6 +733,72 @@ export default function OwnerDashboard() {
           </div>
         )}
 
+        {/* --- ANALYTICS --- */}
+        {activeTab === 'analytics' && (
+          <div className="space-y-6">
+            <div className="grid md:grid-cols-2 gap-6">
+              {/* Smart Pricing */}
+              <div className="bg-white rounded-xl shadow-lg p-8">
+                <h3 className="text-xl font-bold text-agri-dark mb-4">Smart Pricing Engine</h3>
+                <div className="space-y-4">
+                  <input placeholder="Equipment Name (e.g. Tractor)" className="w-full border p-3 rounded-lg" id="sp_eq" />
+                  <input placeholder="District" className="w-full border p-3 rounded-lg" id="sp_dist" />
+                  <button onClick={async () => {
+                    const eq = document.getElementById("sp_eq").value;
+                    const dist = document.getElementById("sp_dist").value;
+                    if (!eq || !dist) return alert("Enter details");
+                    try {
+                      const res = await fetch(`http://localhost:5000/smart-pricing`, {
+                        method: "POST", headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ equipment: eq, district: dist })
+                      });
+                      const data = await res.json();
+                      setSmartPricingResult(data);
+                    } catch (e) { console.error(e); alert("Error fetching price suggestion"); }
+                  }} className="w-full bg-agri-green text-white py-3 rounded-lg font-bold">Get Price Suggestion</button>
+                  {smartPricingResult && (
+                    <div className="mt-6 p-4 bg-gradient-to-br from-blue-50 to-green-50 rounded-lg border border-agri-green">
+                      <h4 className="font-bold text-agri-dark mb-3">Pricing Recommendation</h4>
+                      <div className="space-y-2">
+                        <div className="flex justify-between items-center">
+                          <span className="text-gray-700">Suggested Price:</span>
+                          <span className="font-bold text-agri-green text-lg">₹{smartPricingResult.suggested_price}/day</span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-gray-700">Market Average:</span>
+                          <span className="font-bold text-gray-900 text-lg">₹{smartPricingResult.market_average}/day</span>
+                        </div>
+                        {/* <div className="flex justify-between items-center">
+                          <span className="text-gray-700">Currency:</span>
+                          <span className="font-semibold">{smartPricingResult.currency}</span>
+                        </div> */}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Impact Analytics */}
+              <div className="bg-white rounded-xl shadow-lg p-8">
+                <h3 className="text-xl font-bold text-agri-dark mb-4">Impact Analytics</h3>
+                <div className="space-y-4">
+                  <p className="text-gray-600">Estimate cost savings for farmers using your equipment.</p>
+                  <button onClick={async () => {
+                    try {
+                      const res = await fetch(`${API_BASE}/v1/ai/impact-analytics`, {
+                        method: "POST", headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ hours_used: 50, equipment_type: "Tractor" })
+                      });
+                      const data = await res.json();
+                      alert(`Impact Report:\nManual Hours Saved: ${data.data.manual_hours_saved}\nCost Savings: ₹${data.data.cost_savings}`);
+                    } catch (e) { console.error(e); }
+                  }} className="w-full bg-blue-600 text-white py-3 rounded-lg font-bold">Generate Impact Report</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* --- SETTINGS --- */}
         {activeTab === 'settings' && (
           <div className="bg-white rounded-xl shadow-lg p-8">
@@ -695,7 +816,6 @@ export default function OwnerDashboard() {
         )}
       </div>
 
-      {/* ADD EQUIPMENT MODAL */}
       {showAddModal && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
           <div className="bg-white p-6 rounded-xl w-full max-w-lg shadow-2xl">
@@ -792,8 +912,13 @@ export default function OwnerDashboard() {
             </div>
 
             <div className="flex justify-end gap-3">
+
               <button onClick={() => setShowAddModal(false)} className="px-6 py-2 rounded-lg border hover:bg-gray-100">Cancel</button>
-              <button onClick={handleAddEquipment} className="px-6 py-2 rounded-lg bg-agri-green text-white">Add</button>
+              <button type="button"
+                onClick={() => handleAddEquipment()}
+                className="px-6 py-2 rounded-lg bg-agri-green text-white">
+                Add
+              </button>
             </div>
           </div>
         </div>

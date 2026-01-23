@@ -12,6 +12,7 @@ export const AuthProvider = ({ children }) => {
         const role = localStorage.getItem('role');
         const userId = localStorage.getItem('user_id');
         const name = localStorage.getItem('name');
+        const district = localStorage.getItem('district')
 
         if (token && role && userId) {
             setUser({ token, role, id: userId, name });
@@ -24,12 +25,14 @@ export const AuthProvider = ({ children }) => {
         localStorage.setItem('role', userData.role);
         localStorage.setItem('user_id', userData.user_id);
         localStorage.setItem('name', userData.name);
+        localStorage.setItem('district', userData.district)
 
         setUser({
             token: userData.token,
             role: userData.role,
             id: userData.user_id,
-            name: userData.name
+            name: userData.name,
+            district: userData.district
         });
     };
 
@@ -38,6 +41,7 @@ export const AuthProvider = ({ children }) => {
         localStorage.removeItem('role');
         localStorage.removeItem('user_id');
         localStorage.removeItem('name');
+        localStorage.removeItem('district')
         setUser(null);
     };
 

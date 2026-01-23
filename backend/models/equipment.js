@@ -179,3 +179,4 @@ const equipmentSchema = new mongoose.Schema(
 );
 
 module.exports = mongoose.model("Equipment", equipmentSchema);
+
