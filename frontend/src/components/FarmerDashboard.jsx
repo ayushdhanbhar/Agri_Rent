@@ -18,6 +18,7 @@ import { Badge } from "./ui/Badge"; // Assuming you exported Badge
 import { getCategoryIcon } from "./CategoryIcons";
 import { io } from "socket.io-client";
 import { motion, AnimatePresence } from "framer-motion";
+import Recommendations from "./Recommendations";
 
 const API_BASE = "http://localhost:8000/api";
 const SOCKET_URL = "http://localhost:8000";
@@ -363,6 +364,11 @@ export default function FarmerDashboard() {
               <option value="">All Categories</option>
               {["Land Preparation", "Sowing & Planting", "Irrigation", "Harvesting", "Storage"].map(c => <option key={c} value={c + " Equipment"}>{c}</option>)}
             </select>
+          </div>
+
+          {/* Recommendations for Farmer */}
+          <div>
+            <Recommendations userId={userId} userRole={"farmer"} location={null} />
           </div>
 
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">

@@ -16,6 +16,7 @@ import {
   LineElement,
 } from 'chart.js';
 import { Bar, Line } from 'react-chartjs-2';
+import PricingSuggestion from './PricingSuggestion';
 
 ChartJS.register(
   CategoryScale,
@@ -440,6 +441,12 @@ export default function OwnerDashboard() {
                 <Plus size={20} /> Add Equipment
               </button>
             </div>
+            {/* Pricing suggestion for top equipment */}
+            {inventory && inventory.length > 0 && (
+              <div className="mb-6">
+                <PricingSuggestion equipmentId={inventory[0]._id} currentPrice={inventory[0].price_per_day || inventory[0].price_per_hour} region={inventory[0].location || null} utilization={0.5} forecastedDemand={0.5} />
+              </div>
+            )}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {inventory.map((item, idx) => (
                 <div key={idx} className="border-2 border-agri-light rounded-lg p-6 hover:shadow-lg transition bg-white">

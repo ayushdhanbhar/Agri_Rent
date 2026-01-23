@@ -105,11 +105,13 @@ io.on("connection", (socket) => {
 
 const disputeRouter = require("./routes/disputeRoute")
 const chatbotRouter = require("./routes/chatbotRoute");
+const mlRouter = require("./routes/mlRoute");
 
 // ... (other middlewares)
 
 app.use("/", disputeRouter)
 app.use("/", chatbotRouter);
+app.use("/", mlRouter);
 
 // Global Error Handler
 app.use((err, req, res, next) => {
