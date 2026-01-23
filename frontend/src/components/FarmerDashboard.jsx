@@ -20,7 +20,7 @@ import { Badge } from "./ui/Badge"; // Assuming you exported Badge
 import { getCategoryIcon } from "./CategoryIcons";
 import { io } from "socket.io-client";
 import { motion, AnimatePresence } from "framer-motion";
-import EquipmentMap from "./EquipmentMap";
+import LocationBasedMap from "./LocationBasedMap";
 
 const API_BASE = "http://localhost:8000/api";
 const SOCKET_URL = "http://localhost:8000";
@@ -444,12 +444,8 @@ export default function FarmerDashboard() {
             </div>
           </Card>
 
-          {/* 5km default view */}
-          <EquipmentMap
-            defaultZoom={13}      // ~5km radius
-            radius={5000}         // meters
-            useCurrentLocation
-          />
+          {/* Location-based Equipment Map */}
+          <LocationBasedMap farmerId={userId} />
         </div>
       )}
 

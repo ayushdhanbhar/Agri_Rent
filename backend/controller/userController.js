@@ -48,6 +48,21 @@ let userController = {
             "district": userExists.district
         })
     }),
+    getUser: asyncHandler(async (req, res) => {
+        const { userId } = req.params;
+        const user = await User.findById(userId).select('-password'); // Exclude password from response
+
+        if (user) {
+            res.json({
+                "message": "User fetched successfully.",
+                "data": user
+            });
+        } else {
+            res.status(404).json({
+                "message": "User not found."
+            });
+        }
+    }),
     update: asyncHandler(async (req, res) => {
         const { userId } = req.params;
         const updates = req.body;

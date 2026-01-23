@@ -31,8 +31,12 @@ let equipmentController = {
         });
     }),
     fetch: asyncHandler(async (req, res) => {
-        let { district } = req.params;
-        let equipments = await Equipment.find({ district: district });
+        let { district } = req.query; // Change from req.params to req.query
+        let query = {};
+        if (district) {
+            query.district = district;
+        }
+        let equipments = await Equipment.find(query).populate("owner_id", "name email phone taluka district village pincode state");
         res.json({
             "message": "Equipments fetched successfully.",
             "data": equipments
@@ -97,7 +101,7 @@ let equipmentController = {
         await Equipment.findByIdAndDelete(equipmentId);
         res.json({ message: "Equipment deleted successfully." });
     }),
-    deleteEqp: asyncHandler(async (req, res)=>{
+    deleteEqp: asyncHandler(async (req, res) => {
         let { equipmentId } = req.params;
         await Equipment.findByIdAndDelete(equipmentId)
         res.json({ message: "Equipment deleted successfully." });
