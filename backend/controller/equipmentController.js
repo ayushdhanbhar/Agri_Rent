@@ -1,16 +1,24 @@
 let Equipment = require("../models/equipment")
+let EquipmentUsageEvent = require("../models/equipmentUsageEvent")
 let asyncHandler = require("express-async-handler")
 
 let equipmentController = {
     add: asyncHandler(async (req, res) => {
-        let { owner_id, equipment_name, category, district, price_per_hour, price_per_day } = req.body;
+        let { owner_id, equipment_name, category, district, description, price_per_hour, price_per_day, location, location_label } = req.body;
         let equipment = await Equipment.create({
             owner_id,
+            equipment_name,
             category,
-            subCategory: equipment_name,
             district,
-            ratePerHour: price_per_hour,
-            ratePerDay: price_per_day
+            description: description || "",
+            price_per_hour,
+            price_per_day,
+            // moderation defaults: pending + inactive
+            approval_status: "pending",
+            status: "inactive",
+            // optional location
+            location: (location && location.type === "Point" && Array.isArray(location.coordinates)) ? location : undefined,
+            location_label: location_label || ""
         });
         res.json({
             message: "Equipment added successfully.",
@@ -34,6 +42,55 @@ let equipmentController = {
             "message": "Equipments fetched successfully.",
             "data": equipments
         })
+    }),
+    // For map-based listing (farmers)
+    fetchForMap: asyncHandler(async (req, res) => {
+        const { district } = req.query;
+        const q = { status: "active", approval_status: "approved", location: { $exists: true } };
+        if (district) q.district = district;
+        const equipments = await Equipment.find(q).select("equipment_name category district price_per_hour price_per_day ratings ratings_count location location_label owner_id");
+        res.json({ message: "Equipments fetched for map.", data: equipments });
+    }),
+    // Owner can update current equipment location (manual or via tracking device)
+    updateLocation: asyncHandler(async (req, res) => {
+        const { equipmentId } = req.params;
+        const { lng, lat, location_label, booking_id, farmer_id, owner_id } = req.body;
+        if (typeof lng !== "number" || typeof lat !== "number") {
+            return res.status(400).json({ message: "lng and lat must be numbers." });
+        }
+        const updated = await Equipment.findByIdAndUpdate(
+            equipmentId,
+            {
+                location: { type: "Point", coordinates: [lng, lat] },
+                location_label: location_label || "",
+                last_location_updated_at: new Date()
+            },
+            { new: true }
+        );
+        if (!updated) return res.status(404).json({ message: "Equipment not found." });
+
+        // Persist tracking ping
+        await EquipmentUsageEvent.create({
+            equipment_id: updated._id,
+            booking_id: booking_id || undefined,
+            farmer_id: farmer_id || undefined,
+            owner_id: owner_id || undefined,
+            event_type: "location_ping",
+            location: { type: "Point", coordinates: [lng, lat] },
+            meta: { location_label: location_label || "" }
+        });
+
+        // Broadcast live update to interested clients
+        if (req.io) {
+            req.io.emit("equipment_location_update", {
+                equipment_id: updated._id,
+                location: updated.location,
+                location_label: updated.location_label,
+                last_location_updated_at: updated.last_location_updated_at
+            });
+        }
+
+        res.json({ message: "Location updated.", data: updated });
     }),
     delete: asyncHandler(async (req, res) => {
         const { equipmentId } = req.params;

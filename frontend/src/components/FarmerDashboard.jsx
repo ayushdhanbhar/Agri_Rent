@@ -9,7 +9,8 @@ import {
   Star,
   Send,
   Tractor,
-  Home
+  Home,
+  MapPin
 } from "lucide-react";
 import { DashboardLayout } from "./layout/DashboardLayout";
 import { Card } from "./ui/Card"; // Assuming you exported Card
@@ -18,6 +19,7 @@ import { Badge } from "./ui/Badge"; // Assuming you exported Badge
 import { getCategoryIcon } from "./CategoryIcons";
 import { io } from "socket.io-client";
 import { motion, AnimatePresence } from "framer-motion";
+import EquipmentMap from "./EquipmentMap";
 
 const API_BASE = "http://localhost:8000/api";
 const SOCKET_URL = "http://localhost:8000";
@@ -330,6 +332,7 @@ export default function FarmerDashboard() {
   // Sidebar Configuration
   const sidebarItems = [
     { id: 'rent', label: 'Browse', icon: Search, onClick: () => setActiveTab('rent'), isActive: activeTab === 'rent' },
+    { id: 'map', label: 'Map', icon: MapPin, onClick: () => setActiveTab('map'), isActive: activeTab === 'map' },
     { id: 'bookings', label: 'My Bookings', icon: List, onClick: () => setActiveTab('bookings'), isActive: activeTab === 'bookings' },
     { id: 'messages', label: 'Messages', icon: MessageCircle, onClick: () => setActiveTab('messages'), isActive: activeTab === 'messages' },
     { id: 'disputes', label: 'Disputes', icon: XCircle, onClick: () => setActiveTab('disputes'), isActive: activeTab === 'disputes' },
@@ -394,6 +397,22 @@ export default function FarmerDashboard() {
             </AnimatePresence>
           </div>
           {rentableEquipment.length === 0 && <p className="text-gray-500 text-center py-10">No equipment found.</p>}
+        </div>
+      )}
+
+      {/* --- MAP --- */}
+      {activeTab === "map" && (
+        <div className="space-y-4">
+          <Card>
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+              <div>
+                <h2 className="text-xl font-bold text-agri-dark">Equipment Map</h2>
+                <p className="text-sm text-gray-600">See nearby approved equipment with shared locations.</p>
+              </div>
+              <Button variant="secondary" onClick={fetchRentableEquipment}>Refresh Listings</Button>
+            </div>
+          </Card>
+          <EquipmentMap />
         </div>
       )}
 
