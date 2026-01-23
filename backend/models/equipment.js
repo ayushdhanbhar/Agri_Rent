@@ -147,6 +147,11 @@ const equipmentSchema = new mongoose.Schema(
       },
     },
 
+    description: {
+      type: String,
+      required: true,
+      trim: true,
+    }, 
     district: {
       type: String,
       required: true,

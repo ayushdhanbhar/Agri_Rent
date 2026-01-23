@@ -1,13 +1,11 @@
 import React, { useState, useEffect } from "react";
 import { LogOut, Globe, Search, Menu, X, Briefcase, AlertCircle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { useTranslation } from "react-i18next";
 import LanguageDropdown from "./LanguageDropdown";
 import { HelloFarmersLogoSmall } from "./Logo";
 
 export default function Header({ title, icon: Icon, subtitle, userId, userRole }) {
     const navigate = useNavigate();
-    const { t } = useTranslation();
 
     const handleLogout = () => {
         localStorage.clear();
@@ -36,7 +34,7 @@ export default function Header({ title, icon: Icon, subtitle, userId, userRole }
                         className="flex items-center gap-2 bg-white/20 hover:bg-white/30 px-4 py-2 rounded-lg transition"
                     >
                         <LogOut className="w-5 h-5" />
-                        <span className="hidden md:inline">{t('logout')}</span>
+                        <span className="hidden md:inline">Logout</span>
                     </button>
                 </div>
             </div>
