@@ -1,98 +1,162 @@
-const { GoogleGenAI } = require("@google/genai");
+
+const { GoogleGenerativeAIEmbeddings } = require("@langchain/google-genai");
+const { Pinecone } = require("@pinecone-database/pinecone");
+const OpenAI = require('openai');
+
+// Exact fallback required by product: use curly apostrophe U+2019
+const OUT_OF_DOMAIN_REPLY = "Sorry, I can\u2019t answer this.";
+
+/**
+ * Simple domain check to ensure the user question is agriculture-related.
+ * If no agriculture keywords are present, we immediately refuse with the exact OUT_OF_DOMAIN_REPLY.
+ * This lightweight heuristic prevents sending obvious out-of-domain queries to the RAG pipeline.
+ */
+const isAgricultureQuery = (text) => {
+    if (!text || typeof text !== 'string') return false;
+    const normalized = text.toLowerCase();
+    const keywords = [
+        'agri', 'agriculture', 'farm', 'farmer', 'crop', 'crops', 'soil', 'irrigat', 'pest', 'fertil',
+        'tractor', 'harvest', 'harvesting', 'seeds', 'crop', 'livestock', 'cattle', 'dairy', 'mandi', 'market',
+        'weather', 'sowing', 'rental', 'rent', 'equipment', 'tractor', 'harvester', 'pesticide', 'fertilizer'
+    ];
+    return keywords.some(k => normalized.includes(k));
+};
 
 const chatbotController = {
     chat: async (req, res) => {
         try {
             const { message } = req.body;
-
             if (!message) {
                 console.warn("Chatbot: Message is missing in request body.");
                 return res.status(400).json({ error: "Message is required" });
             }
 
-            const apiKey = process.env.GEMINI_API_KEY;
+            // Enforce domain restriction early
+            if (!isAgricultureQuery(message)) {
+                return res.json({ reply: OUT_OF_DOMAIN_REPLY });
+            }
 
-            if (!apiKey) {
-                console.error("CRITICAL: GEMINI_API_KEY is missing in environment variables.");
-                return res.status(200).json({
-                    reply: "I'm having trouble connecting to my knowledge base (Config Error). Please contact the admin."
+            // --- RAG PIPELINE ---
+            try {
+                // 1. Embed query
+                const embeddings = new GoogleGenerativeAIEmbeddings({
+                    apiKey: process.env.GEMINI_API_KEY,
+                    model: "models/text-embedding-004",
                 });
-            }
+                const queryVector = await embeddings.embedQuery(message);
 
-            // Initialize the new Google GenAI SDK
-            const ai = new GoogleGenAI({ apiKey });
+                // 2. Search Pinecone
+                const pinecone = new Pinecone({
+                    apiKey: process.env.PINECONE_API_KEY, // Ensure API key is passed
+                });
+                const pineconeIndex = pinecone.Index(process.env.PINECONE_INDEX_NAME);
 
-            console.log(`Chatbot: Received query - "${message.substring(0, 50)}..."`);
+                const searchResults = await pineconeIndex.query({
+                    topK: 5, // Top 5 is usually enough
+                    vector: queryVector,
+                    includeMetadata: true,
+                });
 
-            const systemPrompt = `
-            You are 'AgroBot', a specialized AI assistant for the 'FarmWare' platform.
-            
-            STRICT INSTRUCTIONS:
-            1. DOMAIN: You answer ONLY questions about:
-               - Agriculture, Farming, Crops, Soil, Irrigation, Weather, Pest Control.
-               - Farm Equipment rental/usage (Tractors, Harvesters, etc.).
-               - Government schemes for farmers.
-               - Market prices (Mandi rates) generally.
-            
-            2. OUT OF DOMAIN: If the query is NOT about the above topics (e.g., coding, movies, politics, personal questions, math homework), you MUST refuse politely.
-               - Response: "Sorry, I can't answer this."
+                // 3. Compose context
+                const context = (searchResults.matches || [])
+                    .map(match => match.metadata?.text || '')
+                    .filter(Boolean)
+                    .join("\n\n---\n\n");
 
-            3. TONE & STYLE: 
-               - Be polite, concise, and helpful.
-               - Use simple language suitable for farmers.
-            `;
+                console.log("RAG Context Retrieved:", context.length, "chars");
 
-            // Calling the new API pattern
-            const response = await ai.models.generateContent({
-                model: "gemini-1.5-flash", // Falling back to known stable model if preview fails, or user requested specific preview
-                // Note: User requested "gemini-3-flash-preview", but let's safely use a string that works or is close to what they want.
-                // If "gemini-3-flash-preview" is valid in their environment, we use it. 
-                // However, standardized public model is often 1.5-flash or 2.0-flash-exp. 
-                // Let's stick to the user's specific request for "gemini-3-flash-preview" if it exists, otherwise fallback to 1.5-flash.
-                // IMPORTANT: The user prompt EXPLICITLY asked for "gemini-3-flash-preview".
-                model: "gemini-1.5-flash",
-                config: {
-                    systemInstruction: systemPrompt,
-                },
-                contents: [
-                    {
-                        role: "user",
-                        parts: [{ text: message }]
+                // If no context available, respond with the exact refusal
+                if (!context || context.trim().length < 20) {
+                    console.warn("RAG: insufficient context retrieved for query");
+                    return res.json({ reply: OUT_OF_DOMAIN_REPLY });
+                }
+
+                // 4. (RAG) Use GROQ / Llama chat model for rewriting + answering (provided RAG example)
+                // Use GROQ API (llama) for final answer generation to avoid Gemini-only fallback.
+                const groq = new OpenAI({
+                    apiKey: process.env.GROQ_API_KEY,
+                    baseURL: "https://api.groq.com/openai/v1",
+                });
+
+                // Optional: rewrite the query into a standalone question (simple single-turn rewrite)
+                let rewritten = message;
+                try {
+                    const rewriteResp = await groq.chat.completions.create({
+                        model: "llama-3.3-70b-versatile",
+                        messages: [
+                            {
+                                role: "system",
+                                content: `You are a query rewriting expert.
+Based on the provided user question, rephrase it into a complete, standalone question that can be understood without any additional context.
+Only output the rewritten question and nothing else.`
+                            },
+                            {
+                                role: "user",
+                                content: message,
+                            }
+                        ],
+                    });
+                    const candidate = rewriteResp.choices?.[0]?.message?.content;
+                    if (candidate && typeof candidate === 'string' && candidate.trim().length > 0) {
+                        rewritten = candidate.trim();
                     }
-                ]
-            });
+                } catch (rewriteErr) {
+                    // Log but continue with original message
+                    console.warn("Query rewrite failed, continuing with original query:", rewriteErr?.message || rewriteErr);
+                }
 
-            // Note: The user prompt example showed simple content passing. The new SDK allows config object.
-            // Let's try to match the simple requested pattern if possible, but the Config object is better for system prompt.
-            // The user request pattern: 
-            /*
-            const response = await ai.models.generateContent({
-                model: "gemini-3-flash-preview",
-                contents: userPrompt,
-            });
-            */
-            // I will use "gemini-1.5-flash" because "gemini-3" is likely a typo/future model in this prompt context or I should strictly follow if I want to risk 404.
-            // Actually, I'll use "gemini-1.5-flash" to be safe as per my knowledge, or "gemini-1.5-pro".
-            // WAIT, looking at the user request again: "gemini-3-flash-preview". I should probably trust them OR use the latest known working one "gemini-1.5-flash" to avoid 404.
-            // I'll stick to "gemini-1.5-flash" for reliability based on previous turns, but formatted for the new SDK.
+                // Build final system prompt with strict instructions and injected context
+                const systemPrompt = `
+You are 'AgroBot', a specialized AI assistant for the 'FarmWare' platform.
+STRICT INSTRUCTIONS:
+1. DOMAIN: You answer ONLY questions about:
+   - Agriculture, Farming, Crops, Soil, Irrigation, Weather, Pest Control.
+   - Farm Equipment rental/usage (Tractors, Harvesters, etc.).
+   - Government schemes for farmers.
+   - Market prices (Mandi rates) generally.
+2. OUT OF DOMAIN: If the query is NOT about the above topics, you MUST refuse politely.
+   - Response: "${OUT_OF_DOMAIN_REPLY}"
+3. TONE & STYLE:
+   - Be polite, concise, and helpful.
+   - Use simple language suitable for farmers.
+4. CONTEXT: Use ONLY the following context to answer. If the answer is not in the context, say: "${OUT_OF_DOMAIN_REPLY}"
 
-            const text = response.text();
+CONTEXT:
+${context}
+                `;
 
-            if (!text) {
-                console.error("Chatbot: Empty response from AI model.");
-                throw new Error("Empty response from AI");
+                const answerResp = await groq.chat.completions.create({
+                    model: "llama-3.3-70b-versatile",
+                    messages: [
+                        { role: "system", content: systemPrompt },
+                        { role: "user", content: rewritten },
+                    ],
+                });
+
+                let text = answerResp.choices?.[0]?.message?.content || "";
+                // Normalize undefined/empty responses to exact fallback
+                if (!text || typeof text !== 'string' || text.trim().length === 0) {
+                    text = OUT_OF_DOMAIN_REPLY;
+                }
+
+                // Out-of-domain fallback regex check (match both straight and curly apostrophes and common refusal phrases)
+                if (/(out of domain|not in the context|can(?:'|’)?t answer this|not in the provided document)/i.test(text)) {
+                    text = OUT_OF_DOMAIN_REPLY;
+                }
+
+                // Return final reply
+                return res.json({ reply: text });
+
+            } catch (ragError) {
+                // Log full error for debugging, but return a safe, non-technical fallback to the user
+                console.error("RAG Pipeline Error:", ragError);
+                return res.json({ reply: OUT_OF_DOMAIN_REPLY });
             }
-
-            console.log("Chatbot: Success.");
-            res.json({ reply: text });
 
         } catch (error) {
-            console.error("Chatbot API Error:", error.message);
-            console.error(error);
-
-            res.status(200).json({
-                reply: "Sorry, I encountered an error. Please try again."
-            });
+            // Unexpected internal error: log details, return safe fallback
+            console.error("Chatbot API Error:", error);
+            return res.json({ reply: OUT_OF_DOMAIN_REPLY });
         }
     }
 };

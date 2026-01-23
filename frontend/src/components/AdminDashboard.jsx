@@ -6,6 +6,7 @@ import {
   Chart as ChartJS,
   CategoryScale,
   LinearScale,
+  Filler,
   PointElement,
   LineElement,
   BarElement,
@@ -19,6 +20,7 @@ import { Line, Bar, Doughnut } from 'react-chartjs-2';
 ChartJS.register(
   CategoryScale,
   LinearScale,
+  Filler,
   PointElement,
   LineElement,
   BarElement,

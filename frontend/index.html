@@ -6,21 +6,69 @@
   <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="theme-color" content="#2d4a24" />
-  <meta name="description" content="HelloFarmers - Connect farmers and equipment owners. Rent quality farming equipment instantly or monetize your assets." />
+  <meta name="description"
+    content="HelloFarmers - Connect farmers and equipment owners. Rent quality farming equipment instantly or monetize your assets." />
   <title>AgriRent - Agricultural Equipment Rental Platform</title>
 </head>
 
 <body>
   <div id="root"></div>
+  <script>
+    // Ensure saved language cookie is applied before React mounts and before Google Translate script runs.
+    (function() {
+      try {
+        var saved = localStorage.getItem('selectedLanguage') || localStorage.getItem('i18nextLng') || 'en';
+        if (saved && saved !== 'en') {
+          var cookieValue = '/en/' + saved;
+          var expirationDate = new Date();
+          expirationDate.setFullYear(expirationDate.getFullYear() + 1);
+          var expiresStr = expirationDate.toUTCString();
+          // Set cookie (path + optional domain)
+          document.cookie = 'googtrans=' + cookieValue + '; path=/; expires=' + expiresStr;
+          try {
+            var domain = window.location.hostname;
+            if (domain) {
+              document.cookie = 'googtrans=' + cookieValue + '; path=/; expires=' + expiresStr + '; domain=' + domain;
+            }
+          } catch (e) {}
+          console.log('[index] Applied saved googtrans cookie:', cookieValue);
+        }
+      } catch (e) {
+        console.warn('[index] Error applying saved language cookie', e);
+      }
+    })();
+  </script>
   <script type="module" src="/src/main.jsx"></script>
+  
   <!-- Google Translate Script -->
+  <div id="google_translate_element" style="display:none"></div>
   <script type="text/javascript">
+    // Initialize Google Translate Element
     function googleTranslateElementInit() {
-      new google.translate.TranslateElement({ pageLanguage: 'en', autoDisplay: false }, 'google_translate_element');
+      try {
+        new google.translate.TranslateElement(
+          {
+            pageLanguage: 'en',
+            includedLanguages: 'en,hi,mr,ta,gu,te,kn,ml,pa,bn,ur,or,as,ne,sa,ma,doi,ks,sd,fr,es,de,it,pt,ru,ar,zh,ja,ko,tr',
+            layout: google.translate.TranslateElement.InlineLayout.SIMPLE
+          },
+          'google_translate_element'
+        );
+        
+        // Mark that Google Translate is initialized
+        window.googleTranslateReady = true;
+        console.log('Google Translate initialized successfully');
+      } catch (error) {
+        console.error('Error initializing Google Translate:', error);
+      }
     }
+    
+    // Set a flag when this script starts loading
+    window.googleTranslateLoading = true;
   </script>
   <script type="text/javascript"
     src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
+  
   <style>
     body {
       top: 0 !important;
@@ -31,6 +79,19 @@
     }
 
     .goog-te-gadget {
+      display: none !important;
+    }
+
+    .goog-te-gadget-simple {
+      display: none !important;
+    }
+
+    .goog-te-combo {
+      display: none !important;
+    }
+
+    /* Hide Google Translate toolbar completely */
+    .goog-te-toolbar {
       display: none !important;
     }
   </style>
