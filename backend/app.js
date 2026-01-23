@@ -121,7 +121,7 @@ app.use((err, req, res, next) => {
 });
 
 app.get('/api/activate', (req, res) => {
-  res.json({ message: 'Hello from the server!' });
+    res.json({ message: 'Hello from the server!' });
 });
 server.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
