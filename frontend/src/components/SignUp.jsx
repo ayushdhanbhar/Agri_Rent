@@ -31,41 +31,16 @@ export default function SignUp() {
     'Rajasthan', 'Sikkim', 'Tamil Nadu', 'Telangana', 'Tripura',
     'Uttar Pradesh', 'Uttarakhand', 'West Bengal',
   ];
-  // ✅ District → Taluka mapping
-const maharashtraTalukas = {
-  Pune: [
-    "Pune City","Haveli","Mulshi","Mawal","Bhor","Baramati",
-    "Indapur","Daund","Purandar","Shirur","Khed","Ambegaon","Junnar"
-  ],
-  Nashik: [
-    "Nashik","Sinnar","Igatpuri","Dindori","Peth","Trimbakeshwar",
-    "Kalwan","Baglan","Malegaon","Niphad","Yevla","Chandwad","Deola"
-  ],
-  Ahmednagar: [
-    "Ahmednagar","Akole","Jamkhed","Karjat","Kopargaon","Newasa",
-    "Parner","Pathardi","Rahata","Rahuri","Shevgaon","Shrigonda","Shrirampur"
-  ],
-  Kolhapur: [
-    "Karvir","Hatkanangale","Shirol","Radhanagari","Bhudargad",
-    "Ajra","Gadhinglaj","Chandgad","Shahuwadi","Panhala"
-  ],
-  Nagpur: [
-    "Nagpur Urban","Nagpur Rural","Hingna","Kalmeshwar",
-    "Katol","Narkhed","Parseoni","Ramtek","Savner","Umred"
-  ]
-};
-
-// ✅ Taluka → Village mapping
-const villagesByTaluka = {
-  Haveli: ["Wagholi","Manjri","Hadapsar","Mundhwa","Lohegaon","Alandi","Theur"],
-  Mulshi: ["Paud","Pirangut","Lavasa","Bavdhan Khurd","Bharatgaon"],
-  Baramati: ["Malegaon","Morgaon","Shirsuphal","Katewadi","Hol"],
-  Sinnar: ["Wavi","Ghoti","Deshwandi","Pangari"],
-  Karjat: ["Mirajgaon","Shrigonda","Kuldharan","Rashin"]
-};
- const [availableTalukas, setAvailableTalukas] = useState([]);
-const [availableVillages, setAvailableVillages] = useState([]);
-
+  
+  // ✅ All 36 Districts of Maharashtra
+  const maharashtraDistricts = [
+    "Ahmednagar", "Akola", "Amravati", "Aurangabad", "Beed", "Bhandara",
+    "Buldhana", "Chandrapur", "Dhule", "Gadchiroli", "Gondia", "Hingoli",
+    "Jalgaon", "Jalna", "Kolhapur", "Latur", "Mumbai City", "Mumbai Suburban",
+    "Nagpur", "Nanded", "Nashik", "Parbhani", "Pune", "Raigad",
+    "Ratnagiri", "Sangli", "Satara", "Sindhudurg", "Solapur", "Thane",
+    "Wardha", "Washim", "Yavatmal"
+  ];
   const validateForm = () => {
     const newErrors = {};
 
@@ -100,19 +75,6 @@ const handleChange = (e) => {
     ...prev,
     [name]: value
   }));
-
-  // 🔹 District selected → load talukas
-  if (name === "district") {
-    setAvailableTalukas(maharashtraTalukas[value] || []);
-    setAvailableVillages([]);
-    setFormData(prev => ({ ...prev, taluka: "", village: "" }));
-  }
-
-  // 🔹 Taluka selected → load villages
-  if (name === "taluka") {
-    setAvailableVillages(villagesByTaluka[value] || []);
-    setFormData(prev => ({ ...prev, village: "" }));
-  }
 
   if (errors[name]) {
     setErrors(prev => ({ ...prev, [name]: '' }));
@@ -332,52 +294,63 @@ const handleChange = (e) => {
               </div>
 
               {/* District */}
-            <select
-  name="district"
-  value={formData.district}
-  onChange={handleChange}
-  className={`w-full px-4 py-3 border-2 rounded-lg focus:outline-none transition ${
-    errors.district ? 'border-red-500' : 'border-agri-light'
-  }`}
->
-  <option value="">Select District</option>
-  {Object.keys(maharashtraTalukas).map(d => (
-    <option key={d} value={d}>{d}</option>
-  ))}
-</select>
+              <div>
+                <label className="block text-sm font-semibold text-agri-dark mb-2">
+                  District <span className="text-red-500">*</span>
+                </label>
+                <select
+                  name="district"
+                  value={formData.district}
+                  onChange={handleChange}
+                  disabled={formData.state !== 'Maharashtra'}
+                  className={`w-full px-4 py-3 border-2 rounded-lg focus:outline-none transition ${
+                    errors.district ? 'border-red-500 focus:border-red-500' : 'border-agri-light focus:border-agri-green'
+                  } ${formData.state !== 'Maharashtra' ? 'bg-gray-100 cursor-not-allowed' : ''}`}
+                >
+                  <option value="">Select District</option>
+                  {formData.state === 'Maharashtra' && maharashtraDistricts.map(d => (
+                    <option key={d} value={d}>{d}</option>
+                  ))}
+                </select>
+                {errors.district && <p className="text-red-500 text-sm mt-1">{errors.district}</p>}
+              </div>
 
 
               {/* Taluka */}
-            <select
-  name="taluka"
-  value={formData.taluka}
-  onChange={handleChange}
-  disabled={!formData.district}
-  className={`w-full px-4 py-3 border-2 rounded-lg focus:outline-none transition ${
-    errors.taluka ? 'border-red-500' : 'border-agri-light'
-  }`}
->
-  <option value="">Select Taluka</option>
-  {availableTalukas.map(t => (
-    <option key={t} value={t}>{t}</option>
-  ))}
-</select>
+              <div>
+                <label className="block text-sm font-semibold text-agri-dark mb-2">
+                  Taluka <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  name="taluka"
+                  value={formData.taluka}
+                  onChange={handleChange}
+                  placeholder="Enter Taluka name"
+                  className={`w-full px-4 py-3 border-2 rounded-lg focus:outline-none transition ${
+                    errors.taluka ? 'border-red-500 focus:border-red-500' : 'border-agri-light focus:border-agri-green'
+                  }`}
+                />
+                {errors.taluka && <p className="text-red-500 text-sm mt-1">{errors.taluka}</p>}
+              </div>
 
               {/* Village */}
-             <select
-  name="village"
-  value={formData.village}
-  onChange={handleChange}
-  disabled={!formData.taluka}
-  className={`w-full px-4 py-3 border-2 rounded-lg focus:outline-none transition ${
-    errors.village ? 'border-red-500' : 'border-agri-light'
-  }`}
->
-  <option value="">Select Village</option>
-  {availableVillages.map(v => (
-    <option key={v} value={v}>{v}</option>
-  ))}
-</select>
+              <div>
+                <label className="block text-sm font-semibold text-agri-dark mb-2">
+                  Village <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  name="village"
+                  value={formData.village}
+                  onChange={handleChange}
+                  placeholder="Enter Village name"
+                  className={`w-full px-4 py-3 border-2 rounded-lg focus:outline-none transition ${
+                    errors.village ? 'border-red-500 focus:border-red-500' : 'border-agri-light focus:border-agri-green'
+                  }`}
+                />
+                {errors.village && <p className="text-red-500 text-sm mt-1">{errors.village}</p>}
+              </div>
 
 
               {/* Pincode */}
