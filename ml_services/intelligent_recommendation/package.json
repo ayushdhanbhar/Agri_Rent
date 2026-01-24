@@ -1,0 +1,14 @@
+{
+  "name": "intelligent-equipment-recommendation",
+  "version": "1.0.0",
+  "description": "Isolated Flask ML service for equipment recommendation.",
+  "main": "app.py",
+  "scripts": {
+    "start": "python app.py"
+  },
+  "dependencies": {
+    "flask": "*",
+    "pandas": "*",
+    "scikit-learn": "*"
+  }
+}

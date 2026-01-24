@@ -32,7 +32,9 @@ const CATEGORY_MAP = {
   "Renewable & Smart Farming Equipment": ["Solar Pump", "Soil Moisture Sensor", "Weather Station", "GPS Tracker", "Farm Drone", "Yield Monitor"],
   "Small Tools & Accessories": ["Chainsaw", "Power Weeder", "Auger", "Earth Auger", "Generator", "Pressure Washer"],
 };
+
 import PricingSuggestion from './PricingSuggestion';
+import ImpactProductivityReport from './ImpactProductivityReport';
 
 ChartJS.register(
   CategoryScale,
@@ -832,17 +834,8 @@ export default function OwnerDashboard() {
               <div className="bg-white rounded-xl shadow-lg p-8">
                 <h3 className="text-xl font-bold text-agri-dark mb-4">Impact Analytics</h3>
                 <div className="space-y-4">
-                  <p className="text-gray-600">Estimate cost savings for farmers using your equipment.</p>
-                  <button onClick={async () => {
-                    try {
-                      const res = await fetch(`${API_BASE}/v1/ai/impact-analytics`, {
-                        method: "POST", headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ hours_used: 50, equipment_type: "Tractor" })
-                      });
-                      const data = await res.json();
-                      alert(`Impact Report:\nManual Hours Saved: ${data.data.manual_hours_saved}\nCost Savings: ₹${data.data.cost_savings}`);
-                    } catch (e) { console.error(e); }
-                  }} className="w-full bg-blue-600 text-white py-3 rounded-lg font-bold">Generate Impact Report</button>
+                  <p className="text-gray-600 mb-2">Estimate cost savings and productivity impact for farmers using your equipment. Generate a detailed, academic-style report below.</p>
+                  <ImpactProductivityReport allEquipment={allEquipment} bookings={bookings} />
                 </div>
               </div>
             </div>

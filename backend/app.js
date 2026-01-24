@@ -109,12 +109,14 @@ io.on("connection", (socket) => {
 const disputeRouter = require("./routes/disputeRoute")
 const chatbotRouter = require("./routes/chatbotRoute");
 const mlRouter = require("./routes/mlRoute");
+const intelligentRecommendationRouter = require("./routes/intelligentRecommendationRoute");
 
 // ... (other middlewares)
 
 app.use("/", disputeRouter)
 app.use("/", chatbotRouter);
 app.use("/", mlRouter);
+app.use("/", intelligentRecommendationRouter); // Isolated new ML feature
 
 app.use("/", aiRouter);
 app.use("/api/map", mapRoutes);
