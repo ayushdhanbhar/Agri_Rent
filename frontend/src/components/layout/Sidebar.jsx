@@ -17,7 +17,7 @@ const Sidebar = ({ items, title, userRole, isOpen, toggleSidebar }) => {
         <motion.div
             initial={{ width: isOpen ? 250 : 80 }}
             animate={{ width: isOpen ? 250 : 80 }}
-            className="h-screen bg-agri-dark text-white flex flex-col sticky top-0 shadow-2xl z-40"
+            className="max-h-screen bg-agri-dark text-white flex flex-col sticky top-0 shadow-2xl z-40"
         >
             {/* Header */}
             <div className="p-4 flex items-center justify-between border-b border-agri-green/30">
@@ -29,7 +29,7 @@ const Sidebar = ({ items, title, userRole, isOpen, toggleSidebar }) => {
                             exit={{ opacity: 0 }}
                             className="font-bold text-xl tracking-wider text-agri-green"
                         >
-                            FARM<span className="text-white">WARE</span>
+                            AGRI<span className="text-white">RENT</span>
                         </motion.div>
                     )}
                 </AnimatePresence>

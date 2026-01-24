@@ -29,6 +29,11 @@ const userSchema = new mongoose.Schema({
     type: String,
     required: true
   },
+  status: {
+    type: String,
+    enum: ["Active", "Ban"],
+    default: "Active"
+  },
   rating: { type: Number, default: 0 },
   is_verified: { type: Boolean, default: false },
   is_active: { type: Boolean, default: true }

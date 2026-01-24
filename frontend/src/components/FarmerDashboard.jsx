@@ -147,7 +147,7 @@ export default function FarmerDashboard() {
   const handleCreateDispute = async (e) => {
     e.preventDefault();
     try {
-      const payload = { ...newDispute, raised_by: userId, role: 'Farmer' };
+      const payload = { ...newDispute, raised_by: userId, role: 'farmer' };
       const res = await fetch(`${API_BASE}/v1/disputes/create`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -399,10 +399,6 @@ export default function FarmerDashboard() {
           </div>
 
           {/* Recommendations for Farmer */}
-          <div>
-            <Recommendations userId={userId} userRole={"farmer"} location={null} />
-          </div>
-
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
             <AnimatePresence>
               {(selectedCategory ? rentableEquipment.filter(eq => eq.category === selectedCategory) : rentableEquipment).map((eq) => (
@@ -570,7 +566,7 @@ export default function FarmerDashboard() {
           </Card>
 
           {/* Demand Prediction */}
-          <Card>
+          {/* <Card>
             <h2 className="text-xl font-bold mb-4 text-agri-dark">Demand Forecast</h2>
             <div className="space-y-4">
               <select className="w-full border p-3 rounded-lg bg-gray-50" onChange={async (e) => {
@@ -594,7 +590,7 @@ export default function FarmerDashboard() {
               </select>
               <p className="text-sm text-gray-500">Check predicted demand for specific equipment to plan your rentals.</p>
             </div>
-          </Card>
+          </Card> */}
         </div>
       )}
 

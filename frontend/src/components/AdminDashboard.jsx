@@ -102,8 +102,7 @@ export default function AdminDashboard() {
     try {
       await fetch(`${API_BASE}/v1/admin/users/${userId}`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ is_active: !currentStatus })
+        headers: { "Content-Type": "application/json" }
       });
       fetchUsers();
     } catch (e) { console.error(e); }
@@ -204,9 +203,8 @@ export default function AdminDashboard() {
           {[
             { id: 'overview', label: 'Overview', icon: BarChart3 },
             { id: 'users', label: 'Users', icon: Users },
-            { id: 'equipment', label: 'Moderation', icon: Check },
+            // { id: 'equipment', label: 'Moderation', icon: Check },
             { id: 'disputes', label: 'Disputes', icon: AlertCircle },
-            { id: 'analytics', label: 'Analytics', icon: TrendingUp },
             { id: 'settings', label: 'Settings', icon: Settings },
           ].map(tab => {
             const Icon = tab.icon;
@@ -226,21 +224,6 @@ export default function AdminDashboard() {
         {/* --- OVERVIEW --- */}
         {activeTab === 'overview' && (
           <div>
-            {/* Main Stats Row */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-              {[
-                { title: 'Total Users', value: stats.totalUsers, color: 'bg-agri-green' },
-                { title: 'Active Rentals', value: stats.activeRentals, color: 'bg-agri-accent' },
-                { title: 'Platform Revenue', value: `₹${stats.platformRevenue}`, color: 'from-agri-dark to-agri-green' },
-                { title: 'Pending Disputes', value: stats.pendingDisputes, color: 'bg-orange-500' },
-              ].map((stat, idx) => (
-                <div key={idx} className={`bg-gradient-to-br ${stat.color} text-white p-6 rounded-xl shadow-lg`}>
-                  <p className="text-gray-100 text-sm mb-2">{stat.title}</p>
-                  <p className="text-3xl font-bold">{stat.value}</p>
-                </div>
-              ))}
-            </div>
-
             {/* Detailed Stats Row */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
               {[
@@ -294,32 +277,17 @@ export default function AdminDashboard() {
             </div>
 
             {/* Charts Row 3 */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+            <div className="grid grid-cols-1 lg:grid-cols-1 gap-6 mb-6">
               <div className="bg-white rounded-xl shadow-lg p-8">
-                <h3 className="text-xl font-bold text-agri-dark mb-6">User Growth Trend</h3>
+                <h3 className="text-xl font-bold text-agri-dark mb-6">User Growth Trend (Last 7 Days)</h3>
                 <div className="h-64">
                   <Line options={{ responsive: true, maintainAspectRatio: false }} data={{
-                    labels: analytics.activeUsersTrend?.map(d => `Month ${d._id}`) || [],
+                    labels: analytics.activeUsersTrend?.map(d => d._id) || [],
                     datasets: [{
                       label: 'New Users',
                       data: analytics.activeUsersTrend?.map(d => d.count) || [],
                       borderColor: '#8E24AA',
                       backgroundColor: 'rgba(142, 36, 170, 0.5)',
-                      tension: 0.3
-                    }]
-                  }} />
-                </div>
-              </div>
-              <div className="bg-white rounded-xl shadow-lg p-8">
-                <h3 className="text-xl font-bold text-agri-dark mb-6">Equipment Listings Growth</h3>
-                <div className="h-64 flex justify-center">
-                  <Line options={{ maintainAspectRatio: false }} data={{
-                    labels: analytics.equipmentGrowth?.map(d => `Month ${d._id}`) || [],
-                    datasets: [{
-                      label: 'New Equipment',
-                      data: analytics.equipmentGrowth?.map(d => d.count) || [],
-                      borderColor: '#0288D1',
-                      backgroundColor: 'rgba(2, 136, 209, 0.5)',
                       tension: 0.3
                     }]
                   }} />
@@ -349,13 +317,13 @@ export default function AdminDashboard() {
                       <td className="px-6 py-4 font-semibold">{user.name} ({user.phone})</td>
                       <td className="px-6 py-4 capitalize">{user.role}</td>
                       <td className="px-6 py-4">
-                        <span className={`px-3 py-1 rounded-full text-xs font-semibold ${user.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                          {user.is_active ? 'Active' : 'Banned'}
+                        <span className={`px-3 py-1 rounded-full text-xs font-semibold ${user.status === 'Active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                          {user.status === 'Active' ? 'Active' : 'Banned'}
                         </span>
                       </td>
                       <td className="px-6 py-4">
-                        <button onClick={() => toggleUserStatus(user._id, user.is_active)} className={`${user.is_active ? 'text-red-500' : 'text-green-500'} font-bold`}>
-                          {user.is_active ? 'Ban' : 'Activate'}
+                        <button onClick={() => toggleUserStatus(user._id, user.status)} className={`${user.status === 'Active' ? 'text-red-500' : 'text-green-500'} font-bold`}>
+                          {user.status === 'Active' ? 'Ban' : 'Activate'}
                         </button>
                       </td>
                     </tr>
@@ -429,24 +397,7 @@ export default function AdminDashboard() {
 
         {/* --- ANALYTICS KEPT AS SEPARATE TAB IF NEEDED, BUT MERGED INTO OVERVIEW FOR NOW --- */}
         {/* Reuse overview charts if analytics tab is selected or create more detailed ones */}
-        {activeTab === 'analytics' && (
-          <div className="bg-white rounded-xl shadow-lg p-8">
-            <h2 className="text-2xl font-bold text-agri-dark mb-6">Detailed Analytics</h2>
-            <div className="h-96">
-              <Bar
-                data={{
-                  labels: analytics.revenueChart?.map(d => `Month ${d._id}`) || [],
-                  datasets: [{
-                    label: 'Revenue Trend',
-                    data: analytics.revenueChart?.map(d => d.total) || [],
-                    backgroundColor: 'rgba(54, 162, 235, 0.5)'
-                  }]
-                }}
-                options={{ responsive: true, maintainAspectRatio: false }}
-              />
-            </div>
-          </div>
-        )}
+        
 
         {/* --- SETTINGS --- */}
         {activeTab === 'settings' && (

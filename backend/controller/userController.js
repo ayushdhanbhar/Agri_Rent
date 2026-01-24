@@ -32,6 +32,9 @@ let userController = {
         if (!userExists) {
             throw new Error("User not found.")
         }
+        if(userExists.status == "Ban"){
+            throw new Error("User is banned.")
+        }
         let isMatch = await bcrypt.compare(password, userExists.password)
         if (!isMatch) {
             throw new Error("Invalid credentials.")

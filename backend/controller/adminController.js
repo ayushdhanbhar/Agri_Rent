@@ -46,8 +46,9 @@ const adminController = {
 
     toggleUserStatus: asyncHandler(async (req, res) => {
         const { userId } = req.params;
-        const { is_active } = req.body;
-        await User.findByIdAndUpdate(userId, { is_active });
+        const user = await User.findById(userId);
+        const newStatus = user.status === "Active" ? "Ban" : "Active";
+        await User.findByIdAndUpdate(userId, { status: newStatus });
         res.json({ message: "User status updated." });
     }),
 
@@ -97,6 +98,10 @@ const adminController = {
 
     // 5. Analytics Data (Charts)
     getAnalytics: asyncHandler(async (req, res) => {
+        // Get date 7 days ago
+        const sevenDaysAgo = new Date();
+        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
         // Monthly Revenue
         const revenueData = await Booking.aggregate([
             { $match: { booking_status: { $in: ["confirmed", "completed"] } } },
@@ -109,16 +114,20 @@ const adminController = {
             { $sort: { "_id": 1 } }
         ]);
 
-        // Booking Trends (Daily)
+        // Booking Trends (Daily - Last 7 days)
         const bookingTrends = await Booking.aggregate([
+            {
+                $match: {
+                    start_datetime: { $gte: sevenDaysAgo }
+                }
+            },
             {
                 $group: {
                     _id: { $dateToString: { format: "%Y-%m-%d", date: "$start_datetime" } },
                     count: { $sum: 1 }
                 }
             },
-            { $sort: { "_id": 1 } },
-            { $limit: 7 }
+            { $sort: { "_id": 1 } }
         ]);
 
         // Dispute Stats
@@ -131,22 +140,32 @@ const adminController = {
             { $group: { _id: "$role", count: { $sum: 1 } } }
         ]);
 
-        // Active Users Trend (Mocking based on createdAt - monthly)
+        // Active Users Trend (Daily - Last 7 days)
         const activeUsersTrend = await User.aggregate([
             {
+                $match: {
+                    createdAt: { $gte: sevenDaysAgo }
+                }
+            },
+            {
                 $group: {
-                    _id: { $month: "$createdAt" },
+                    _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } },
                     count: { $sum: 1 }
                 }
             },
             { $sort: { "_id": 1 } }
         ]);
 
-        // Equipment Growth
+        // Equipment Growth (Daily - Last 7 days)
         const equipmentGrowth = await Equipment.aggregate([
             {
+                $match: {
+                    createdAt: { $gte: sevenDaysAgo }
+                }
+            },
+            {
                 $group: {
-                    _id: { $month: "$createdAt" },
+                    _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } },
                     count: { $sum: 1 }
                 }
             },

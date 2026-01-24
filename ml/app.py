@@ -6,6 +6,7 @@ from sklearn.linear_model import LinearRegression
 from sklearn.preprocessing import OneHotEncoder
 from sklearn.compose import ColumnTransformer
 from sklearn.pipeline import Pipeline
+from sklearn.model_selection import train_test_split   # ✅ ADDED
 import random
 
 app = Flask(__name__)
@@ -20,21 +21,32 @@ except Exception as e:
     df = pd.DataFrame(columns=['category', 'equipment_name', 'district', 'price_per_hour', 'price_per_day'])
 
 # --- Pre-train simple pricing model ---
-# We will predict price_per_day based on equipment_name and district
 X = df[['equipment_name', 'district']]
 y = df['price_per_day']
+
+# ✅ ADDED: Train-test split
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, random_state=42
+)
 
 preprocessor = ColumnTransformer(
     transformers=[
         ('cat', OneHotEncoder(handle_unknown='ignore'), ['equipment_name', 'district'])
     ])
 
-price_model = Pipeline(steps=[('preprocessor', preprocessor),
-                              ('regressor', LinearRegression())])
+price_model = Pipeline(steps=[
+    ('preprocessor', preprocessor),
+    ('regressor', LinearRegression())
+])
 
 try:
-    price_model.fit(X, y)
+    price_model.fit(X_train, y_train)
     print("Pricing model trained.")
+
+    # ✅ ADDED: Print accuracy (R² score)
+    print("Training Accuracy (R²):", round(price_model.score(X_train, y_train), 3))
+    print("Testing Accuracy (R²):", round(price_model.score(X_test, y_test), 3))
+
 except Exception as e:
     print(f"Error training pricing model: {e}")
 
@@ -53,17 +65,12 @@ SEASONS = ["Kharif", "Rabi", "Zaid"]
 
 @app.route('/predict-demand', methods=['POST'])
 def predict_demand():
-    """
-    Predict demand score (0-100) based on equipment, location, and month.
-    Since we lack historical booking data, we simulate this with heuristic logic.
-    """
     data = request.json
     equipment_name = data.get('equipment')
-    month = data.get('month', 'June') # Default to peak season start
+    month = data.get('month', 'June')
     
     base_demand = random.randint(30, 70)
     
-    # Heuristic: High demand for Sowing/Harvesting equipment in specific months
     high_demand_keywords = ["Harvester", "Sower", "Planter", "Transplanter"]
     if any(k in equipment_name for k in high_demand_keywords):
         base_demand += 20
@@ -75,9 +82,6 @@ def predict_demand():
 
 @app.route('/smart-pricing', methods=['POST'])
 def smart_pricing():
-    """
-    Predict optimal rental price.
-    """
     data = request.json
     equipment_name = data.get('equipment')
     district = data.get('district')
@@ -86,7 +90,6 @@ def smart_pricing():
     
     try:
         predicted_price = price_model.predict(input_df)[0]
-        # Add some "dynamic" fluctuation based on demand
         demand_factor = random.uniform(0.9, 1.1)
         final_price = max(100, round(predicted_price * demand_factor, 2))
         
@@ -96,7 +99,6 @@ def smart_pricing():
             "currency": "INR"
         })
     except:
-        # Fallback if model fails
         return jsonify({
             "suggested_price": 500,
             "market_average": 500,
@@ -105,16 +107,12 @@ def smart_pricing():
 
 @app.route('/recommend', methods=['POST'])
 def recommend():
-    """
-    Recommend equipment based on crop type.
-    """
     data = request.json
     crop = data.get('crop')
     land_size = data.get('land_size', 1)
     
-    recommended_names = CROP_EQUIPMENT_MAP.get(crop, ["Tractor", "Sprayer"]) # Default
+    recommended_names = CROP_EQUIPMENT_MAP.get(crop, ["Tractor", "Sprayer"])
     
-    # Filter dataset for these items to get real examples (random sample)
     results = []
     for name in recommended_names:
         matches = df[df['equipment_name'].str.contains(name, case=False, na=False)]
@@ -126,22 +124,16 @@ def recommend():
                 "avg_price": float(sample['price_per_day'])
             })
             
-    return jsonify({
-        "recommendations": results
-    })
+    return jsonify({"recommendations": results})
 
 @app.route('/impact-analytics', methods=['POST'])
 def impact_analytics():
-    """
-    Calculate productivity savings.
-    """
     data = request.json
     hours_used = data.get('hours_used', 10)
     equipment_type = data.get('equipment_type', 'Tractor')
     
-    # Mock savings calculation
-    manual_labor_hours = hours_used * 10 # 1 machine hour = 10 man hours
-    cost_saving_per_hour = 500 # vs manual labor cost
+    manual_labor_hours = hours_used * 10
+    cost_saving_per_hour = 500
     
     total_savings = hours_used * cost_saving_per_hour
     

@@ -503,7 +503,7 @@ export default function OwnerDashboard() {
             { id: 'messages', label: 'Messages', icon: MessageCircle },
             { id: 'reviews', label: 'Reviews', icon: Star },
             { id: 'analytics', label: 'Analytics', icon: BarChart3 },
-            { id: 'disputes', label: 'Disputes', icon: AlertCircle },
+            // { id: 'disputes', label: 'Disputes', icon: AlertCircle },
             { id: 'settings', label: 'Settings', icon: Settings },
           ].map(tab => {
             const Icon = tab.icon;
@@ -830,127 +830,127 @@ export default function OwnerDashboard() {
                 </div>
               </div>
 
+              {/* Equipment Utilization */}
+              {allEquipment.length > 0 && (
+                <div className="bg-white rounded-xl shadow-lg p-8">
+                  <h3 className="text-xl font-bold text-agri-dark mb-6">Equipment Utilization</h3>
+                  
+                  {/* Category Dropdown */}
+                  <div className="mb-6">
+                    <label className="block text-sm font-semibold text-agri-dark mb-2">Select Equipment Category</label>
+                    <select 
+                      value={selectedCategory}
+                      onChange={(e) => setSelectedCategory(e.target.value)}
+                      className="w-full border-2 border-agri-green p-3 rounded-lg font-semibold text-gray-700 focus:outline-none focus:ring-2 focus:ring-agri-green"
+                    >
+                      <option value="">-- Select a Category --</option>
+                      {Object.keys(CATEGORY_MAP).map((cat) => (
+                        <option key={cat} value={cat}>{cat}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Bar Chart */}
+                  {selectedCategory && (
+                    <div className="bg-gradient-to-br from-blue-50 to-green-50 rounded-lg p-6 border border-agri-green">
+                      {(() => {
+                        // Filter equipment by selected category
+                        const categoryEquipment = allEquipment.filter(eq => eq.category === selectedCategory);
+                        
+                        // Count equipment by subCategory
+                        const equipmentCount = {};
+                        categoryEquipment.forEach(eq => {
+                          equipmentCount[eq.subCategory] = (equipmentCount[eq.subCategory] || 0) + 1;
+                        });
+
+                        const chartData = {
+                          labels: Object.keys(equipmentCount),
+                          datasets: [
+                            {
+                              label: 'Equipment Count',
+                              data: Object.values(equipmentCount),
+                              backgroundColor: 'rgba(34, 197, 94, 0.6)',
+                              borderColor: 'rgba(34, 197, 94, 1)',
+                              borderWidth: 2,
+                              borderRadius: 8,
+                              hoverBackgroundColor: 'rgba(34, 197, 94, 0.8)',
+                            }
+                          ]
+                        };
+
+                        const chartOptions = {
+                          responsive: true,
+                          plugins: {
+                            legend: {
+                              display: true,
+                              labels: {
+                                color: 'rgba(0, 0, 0, 0.7)',
+                                font: { size: 12, weight: 'bold' }
+                              }
+                            },
+                            tooltip: {
+                              backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                              padding: 12,
+                              titleFont: { size: 13, weight: 'bold' },
+                              bodyFont: { size: 12 }
+                            }
+                          },
+                          scales: {
+                            y: {
+                              beginAtZero: true,
+                              ticks: { stepSize: 1, color: 'rgba(0, 0, 0, 0.6)' },
+                              grid: { color: 'rgba(0, 0, 0, 0.1)' }
+                            },
+                            x: {
+                              ticks: { color: 'rgba(0, 0, 0, 0.6)' },
+                              grid: { display: false }
+                            }
+                          }
+                        };
+
+                        return (
+                          <div>
+                            {categoryEquipment.length > 0 ? (
+                              <>
+                                <Bar data={chartData} options={chartOptions} />
+                                <div className="mt-6 p-4 bg-white rounded-lg border border-gray-200">
+                                  <h4 className="font-bold text-agri-dark mb-3">Summary</h4>
+                                  <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                      <p className="text-gray-600 text-sm">Total Equipment</p>
+                                      <p className="text-2xl font-bold text-agri-green">{categoryEquipment.length}</p>
+                                    </div>
+                                    <div>
+                                      <p className="text-gray-600 text-sm">Equipment Types</p>
+                                      <p className="text-2xl font-bold text-agri-green">{Object.keys(equipmentCount).length}</p>
+                                    </div>
+                                  </div>
+                                </div>
+                              </>
+                            ) : (
+                              <p className="text-center text-gray-500 py-8">No equipment found in this category</p>
+                            )}
+                          </div>
+                        );
+                      })()}
+                    </div>
+                  )}
+
+                  {!selectedCategory && (
+                    <p className="text-center text-gray-500 py-8">Select a category to view equipment utilization chart</p>
+                  )}
+                </div>
+              )}
+            </div>
+
               {/* Impact Analytics */}
-              <div className="bg-white rounded-xl shadow-lg p-8">
+              {/* <div className="bg-white rounded-xl shadow-lg p-8">
                 <h3 className="text-xl font-bold text-agri-dark mb-4">Impact Analytics</h3>
                 <div className="space-y-4">
                   <p className="text-gray-600 mb-2">Estimate cost savings and productivity impact for farmers using your equipment. Generate a detailed, academic-style report below.</p>
                   <ImpactProductivityReport allEquipment={allEquipment} bookings={bookings} />
                 </div>
-              </div>
-            </div>
-
-            {/* Equipment Utilization */}
-            {allEquipment.length > 0 && (
-              <div className="bg-white rounded-xl shadow-lg p-8">
-                <h3 className="text-xl font-bold text-agri-dark mb-6">Equipment Utilization</h3>
-                
-                {/* Category Dropdown */}
-                <div className="mb-6">
-                  <label className="block text-sm font-semibold text-agri-dark mb-2">Select Equipment Category</label>
-                  <select 
-                    value={selectedCategory}
-                    onChange={(e) => setSelectedCategory(e.target.value)}
-                    className="w-full border-2 border-agri-green p-3 rounded-lg font-semibold text-gray-700 focus:outline-none focus:ring-2 focus:ring-agri-green"
-                  >
-                    <option value="">-- Select a Category --</option>
-                    {Object.keys(CATEGORY_MAP).map((cat) => (
-                      <option key={cat} value={cat}>{cat}</option>
-                    ))}
-                  </select>
-                </div>
-
-                {/* Bar Chart */}
-                {selectedCategory && (
-                  <div className="bg-gradient-to-br from-blue-50 to-green-50 rounded-lg p-6 border border-agri-green">
-                    {(() => {
-                      // Filter equipment by selected category
-                      const categoryEquipment = allEquipment.filter(eq => eq.category === selectedCategory);
-                      
-                      // Count equipment by subCategory
-                      const equipmentCount = {};
-                      categoryEquipment.forEach(eq => {
-                        equipmentCount[eq.subCategory] = (equipmentCount[eq.subCategory] || 0) + 1;
-                      });
-
-                      const chartData = {
-                        labels: Object.keys(equipmentCount),
-                        datasets: [
-                          {
-                            label: 'Equipment Count',
-                            data: Object.values(equipmentCount),
-                            backgroundColor: 'rgba(34, 197, 94, 0.6)',
-                            borderColor: 'rgba(34, 197, 94, 1)',
-                            borderWidth: 2,
-                            borderRadius: 8,
-                            hoverBackgroundColor: 'rgba(34, 197, 94, 0.8)',
-                          }
-                        ]
-                      };
-
-                      const chartOptions = {
-                        responsive: true,
-                        plugins: {
-                          legend: {
-                            display: true,
-                            labels: {
-                              color: 'rgba(0, 0, 0, 0.7)',
-                              font: { size: 12, weight: 'bold' }
-                            }
-                          },
-                          tooltip: {
-                            backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                            padding: 12,
-                            titleFont: { size: 13, weight: 'bold' },
-                            bodyFont: { size: 12 }
-                          }
-                        },
-                        scales: {
-                          y: {
-                            beginAtZero: true,
-                            ticks: { stepSize: 1, color: 'rgba(0, 0, 0, 0.6)' },
-                            grid: { color: 'rgba(0, 0, 0, 0.1)' }
-                          },
-                          x: {
-                            ticks: { color: 'rgba(0, 0, 0, 0.6)' },
-                            grid: { display: false }
-                          }
-                        }
-                      };
-
-                      return (
-                        <div>
-                          {categoryEquipment.length > 0 ? (
-                            <>
-                              <Bar data={chartData} options={chartOptions} />
-                              <div className="mt-6 p-4 bg-white rounded-lg border border-gray-200">
-                                <h4 className="font-bold text-agri-dark mb-3">Summary</h4>
-                                <div className="grid grid-cols-2 gap-4">
-                                  <div>
-                                    <p className="text-gray-600 text-sm">Total Equipment</p>
-                                    <p className="text-2xl font-bold text-agri-green">{categoryEquipment.length}</p>
-                                  </div>
-                                  <div>
-                                    <p className="text-gray-600 text-sm">Equipment Types</p>
-                                    <p className="text-2xl font-bold text-agri-green">{Object.keys(equipmentCount).length}</p>
-                                  </div>
-                                </div>
-                              </div>
-                            </>
-                          ) : (
-                            <p className="text-center text-gray-500 py-8">No equipment found in this category</p>
-                          )}
-                        </div>
-                      );
-                    })()}
-                  </div>
-                )}
-
-                {!selectedCategory && (
-                  <p className="text-center text-gray-500 py-8">Select a category to view equipment utilization chart</p>
-                )}
-              </div>
-            )}
+              </div> */}
           </div>
         )}
 
