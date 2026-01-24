@@ -114,16 +114,6 @@ Here are some screenshots showcasing the AgriRent platform:
 
 ---
 
-## **📊 Use Case Diagram**
-
-👉 [https://github.com/om-dalvi-1904/HM059_keyboard-smashers/blob/main/assets](https://github.com/om-dalvi-1904/HM059_keyboard-smashers/blob/main/assets)
-
----
-
-## **📊 Schema Diagram**
-
-👉 [https://github.com/om-dalvi-1904/HM059_keyboard-smashers/blob/main/assets/Schema-Design.pdf](https://github.com/om-dalvi-1904/HM059_keyboard-smashers/blob/main/assets/Schema-Design.pdf)
-
 ---
 
 ## **🚀 Upcoming Features**
