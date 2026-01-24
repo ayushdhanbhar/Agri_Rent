@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { MessageSquare, X, Send, Bot, Loader2 } from 'lucide-react';
+import { MessageSquare, X, Send, Bot, Loader2, Mic, MicOff } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 export default function Chatbot() {
@@ -11,6 +11,11 @@ export default function Chatbot() {
     const [input, setInput] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const messagesEndRef = useRef(null);
+
+    // Speech-to-text state
+    const [isListening, setIsListening] = useState(false);
+    const [speechSupported, setSpeechSupported] = useState(false);
+    const recognitionRef = useRef(null);
 
     // Load history from sessionStorage on mount
     useEffect(() => {
@@ -26,8 +31,61 @@ export default function Chatbot() {
         scrollToBottom();
     }, [messages]);
 
+    // Initialize speech recognition
+    useEffect(() => {
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        
+        if (SpeechRecognition) {
+            setSpeechSupported(true);
+            const recognition = new SpeechRecognition();
+            recognition.continuous = false;
+            recognition.interimResults = false;
+            recognition.lang = 'en-US';
+
+            recognition.onresult = (event) => {
+                const transcript = event.results[0][0].transcript;
+                setInput(transcript);
+                setIsListening(false);
+            };
+
+            recognition.onerror = (event) => {
+                console.error('Speech recognition error:', event.error);
+                setIsListening(false);
+            };
+
+            recognition.onend = () => {
+                setIsListening(false);
+            };
+
+            recognitionRef.current = recognition;
+        }
+
+        return () => {
+            if (recognitionRef.current) {
+                recognitionRef.current.abort();
+            }
+        };
+    }, []);
+
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    };
+
+    const toggleListening = () => {
+        if (!recognitionRef.current) return;
+
+        if (isListening) {
+            recognitionRef.current.stop();
+            setIsListening(false);
+        } else {
+            try {
+                recognitionRef.current.start();
+                setIsListening(true);
+            } catch (error) {
+                console.error('Failed to start speech recognition:', error);
+                setIsListening(false);
+            }
+        }
     };
 
     const handleSend = async () => {
@@ -110,14 +168,30 @@ export default function Chatbot() {
 
                     {/* Input Area */}
                     <div className="p-4 bg-white border-t border-gray-100 flex gap-2">
-                        <input
-                            type="text"
-                            placeholder={t('type_message')}
-                            className="flex-1 bg-gray-100 rounded-full px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-agri-green/50"
-                            value={input}
-                            onChange={(e) => setInput(e.target.value)}
-                            onKeyPress={(e) => e.key === 'Enter' && handleSend()}
-                        />
+                        <div className="flex-1 relative">
+                            <input
+                                type="text"
+                                placeholder={t('type_message')}
+                                className="w-full bg-gray-100 rounded-full px-4 py-2 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-agri-green/50"
+                                value={input}
+                                onChange={(e) => setInput(e.target.value)}
+                                onKeyPress={(e) => e.key === 'Enter' && handleSend()}
+                            />
+                            {speechSupported && (
+                                <button
+                                    onClick={toggleListening}
+                                    disabled={isLoading}
+                                    className={`absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-full transition ${
+                                        isListening 
+                                            ? 'bg-red-500 text-white animate-pulse' 
+                                            : 'text-gray-500 hover:bg-gray-200'
+                                    } disabled:opacity-50 disabled:cursor-not-allowed`}
+                                    title={isListening ? 'Stop listening' : 'Start voice input'}
+                                >
+                                    {isListening ? <MicOff size={16} /> : <Mic size={16} />}
+                                </button>
+                            )}
+                        </div>
                         <button
                             onClick={handleSend}
                             disabled={isLoading || !input.trim()}

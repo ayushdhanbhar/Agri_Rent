@@ -23,6 +23,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
 import L from "leaflet";
 import Recommendations from "./Recommendations";
+import IntelligentEquipmentRecommendation from "./IntelligentEquipmentRecommendation";
 
 const API_BASE = "http://localhost:8000/api";
 const SOCKET_URL = "http://localhost:8000";
@@ -564,37 +565,7 @@ export default function FarmerDashboard() {
           <Card>
             <h2 className="text-xl font-bold mb-4 text-agri-dark">Intelligent Recommendations</h2>
             <div className="space-y-4">
-              <select
-                className="w-full border p-3 rounded-lg bg-gray-50"
-                onChange={async (e) => {
-                  if (!e.target.value) return;
-                  try {
-                    const res = await fetch(`${API_BASE}/v1/ai/recommend`, {
-                      method: "POST",
-                      headers: { "Content-Type": "application/json" },
-                      body: JSON.stringify({ crop: e.target.value, land_size: 5 })
-                    });
-                    const data = await res.json();
-                    if (data.data?.recommendations) {
-                      // Store in a local state if needed, for now just alerting or console
-                      // Ideally, we add a state variable `recommendations`
-                      // But to keep it simple in this edit, I will just show them in a list below
-                      setRentableEquipment(data.data.recommendations.map(r => ({ ...r, _id: "rec-" + Math.random() })));
-                      setActiveTab('rent'); // Switch to rent tab to show filtered results?
-                      // Actually, better to show them here.
-                    }
-                  } catch (e) { console.error(e); }
-                }}
-              >
-                <option value="">Select Crop Type</option>
-                <option value="Wheat">Wheat</option>
-                <option value="Rice">Rice</option>
-                <option value="Sugarcane">Sugarcane</option>
-                <option value="Cotton">Cotton</option>
-                <option value="Vegetables">Vegetables</option>
-                <option value="Fruits">Fruits</option>
-              </select>
-              <p className="text-sm text-gray-500">Select a crop to see recommended equipment based on land size and farming stage.</p>
+              <IntelligentEquipmentRecommendation />
             </div>
           </Card>
 

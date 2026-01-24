@@ -1,0 +1,16 @@
+land_size,crop_type,farming_stage,equipment
+small,wheat,preparation,Plough
+small,wheat,sowing,Seed Drill
+small,wheat,growing,Sprayer
+small,wheat,harvesting,Sickle
+medium,rice,preparation,Rotavator
+medium,rice,sowing,Transplanter
+medium,rice,growing,Sprayer
+medium,rice,harvesting,Combine Harvester
+large,cotton,preparation,Tractor
+large,cotton,sowing,Planter
+large,cotton,growing,Sprayer
+large,cotton,harvesting,Cotton Picker
+small,vegetables,preparation,Hoe
+medium,vegetables,growing,Sprayer
+large,sugarcane,harvesting,Sugarcane Harvester
