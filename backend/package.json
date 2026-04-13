@@ -24,7 +24,7 @@
     "bcrypt": "^6.0.0",
     "combined-stream": "^1.0.8",
     "cors": "^2.8.5",
-    "dotenv": "^17.2.3",
+    "dotenv": "^16.6.1",
     "express": "^5.2.1",
     "express-async-handler": "^1.2.0",
     "jsonwebtoken": "^9.0.3",
@@ -33,6 +33,7 @@
     "openai": "^6.16.0",
     "pdf-parse": "^1.1.4",
     "readline-sync": "^1.4.10",
-    "socket.io": "^4.8.3"
+    "socket.io": "^4.8.3",
+    "undici": "^8.0.3"
   }
 }
